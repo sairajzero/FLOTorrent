@@ -1,0 +1,775 @@
+<html>
+<head>
+  <title>FLO Torrent</title>
+
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+
+  <link href="https://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet">
+
+</head>
+
+
+<body onload="rePaint()" onresize="rePaint()">
+
+<style>
+
+article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section,summary{display:block;}audio,canvas,video{display:inline-block;}audio:not([controls]){display:none;height:0;}[hidden]{display:none;}html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%;}body{margin:0;}a:focus{outline:thin dotted;}a:active,a:hover{outline:0;}h1{font-size:2em;margin:0.67em 0;}abbr[title]{border-bottom:1px dotted;}b,strong{font-weight:bold;}dfn{font-style:italic;}hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0;}mark{background:#ff0;color:#000;}code,kbd,pre,samp{font-family:monospace,serif;font-size:1em;}pre{white-space:pre-wrap;}q{quotes:"\201C" "\201D" "\2018" "\2019";}small{font-size:80%;}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline;}sup{top:-0.5em;}sub{bottom:-0.25em;}img{border:0;}svg:not(:root){overflow:hidden;}figure{margin:0;}fieldset{border:1px solid #c0c0c0;margin:0 2px;padding:0.35em 0.625em 0.75em;}legend{border:0;padding:0;}button,input,select,textarea{font-family:inherit;font-size:100%;margin:0;}button,input{line-height:normal;}button,select{text-transform:none;}button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer;}button[disabled],html input[disabled]{cursor:default;}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0;}input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box;}input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none;}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0;}textarea{overflow:auto;vertical-align:top;}table{border-collapse:collapse;border-spacing:0;}
+
+
+@import url('https://fonts.googleapis.com/css?family=Titillium+Web');
+
+
+/*These settings will go to all divs */
+#rootDiv {
+  box-sizing: border-box;
+  position:relative;
+  top:0px;
+  font-family: 'Titillium Web', Arial, sans-serif;
+  font-weight: 300;
+  font-size: 1.05em;
+  margin: 0;
+  text-align:justify;
+}
+
+.baseDiv {
+    border-color: #e3e3e3;
+    border-style: solid;
+    border-width: 1px;
+    margin-left: -1px;
+    margin-top: -1px;
+
+
+}
+
+i {
+font-size: 1em;
+  font-weight: 400;
+  padding: 0 0 15px;
+  line-height: 36px;
+
+}
+
+h1 {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  font-size: 28px;
+  font-weight: 400;
+  padding: 0 0 15px;
+}
+
+a{
+    text-decoration: none;
+}
+.torrent-name{
+  font-size: 20px;
+	color: #FFFFFF;
+  text-align: center;
+  padding: 10px;
+}
+.torrent-uploader{
+  font-size: 16px;
+	color: #FFFFFF;
+  text-align: center;
+  padding: 10px;
+}
+.torrent-type{
+  font-size: 14px;
+	color: #FFFFFF;
+  text-align: center;
+  padding: 10px;
+}
+.torrent-description{
+  font-size: 16px;
+	color: #FFFFFF;
+  text-align: center;
+  padding: 10px;
+}
+.torrent-tags{
+  font-size: 12px;
+	color: #FFFFFF;
+  text-align: center;
+  padding: 10px;
+}
+
+
+
+
+</style>
+<style>
+/*For download progress */
+#downloadBar{
+  position: fixed;
+  top:30%;
+  left:45%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.progress-circle {
+   font-size: 20px;
+   margin: 20px;
+   position: relative; /* so that children can be absolutely positioned */
+   padding: 0;
+   width: 5em;
+   height: 5em;
+   background-color: #F2E9E1;
+   border-radius: 50%;
+   line-height: 5em;
+}
+
+.progress-circle:after{
+    border: none;
+    position: absolute;
+    top: 0.35em;
+    left: 0.35em;
+    text-align: center;
+    display: block;
+    border-radius: 50%;
+    width: 4.3em;
+    height: 4.3em;
+    background-color: black;
+    content: " ";
+}
+/* Text inside the control */
+.progress-circle span {
+    position: absolute;
+    line-height: 5em;
+    width: 5em;
+    text-align: center;
+    display: block;
+    color: white;
+    z-index: 2;
+}
+.left-half-clipper {
+   /* a round circle */
+   border-radius: 50%;
+   width: 5em;
+   height: 5em;
+   position: absolute; /* needed for clipping */
+   clip: rect(0, 5em, 5em, 2.5em); /* clips the whole left half*/
+}
+/* when p>50, don't clip left half*/
+.progress-circle.over50 .left-half-clipper {
+   clip: rect(auto,auto,auto,auto);
+}
+.value-bar {
+   /*This is an overlayed square, that is made round with the border radius,
+   then it is cut to display only the left half, then rotated clockwise
+   to escape the outer clipping path.*/
+   position: absolute; /*needed for clipping*/
+   clip: rect(0, 2.5em, 5em, 0);
+   width: 5em;
+   height: 5em;
+   border-radius: 50%;
+   border: 0.45em solid #53777A; /*The border is 0.35 but making it larger removes visual artifacts */
+   /*background-color: #4D642D;*/ /* for debug */
+   box-sizing: border-box;
+
+}
+/* Progress bar filling the whole right half for values above 50% */
+.progress-circle.over50 .first50-bar {
+   /*Progress bar for the first 50%, filling the whole right half*/
+   position: absolute; /*needed for clipping*/
+   clip: rect(0, 5em, 5em, 2.5em);
+   background-color: #53777A;
+   border-radius: 50%;
+   width: 5em;
+   height: 5em;
+}
+.progress-circle:not(.over50) .first50-bar{ display: none; }
+
+
+/* Progress bar rotation position */
+.progress-circle.p0 .value-bar { display: none; }
+.progress-circle.p1 .value-bar { transform: rotate(4deg); }
+.progress-circle.p2 .value-bar { transform: rotate(7deg); }
+.progress-circle.p3 .value-bar { transform: rotate(11deg); }
+.progress-circle.p4 .value-bar { transform: rotate(14deg); }
+.progress-circle.p5 .value-bar { transform: rotate(18deg); }
+.progress-circle.p6 .value-bar { transform: rotate(22deg); }
+.progress-circle.p7 .value-bar { transform: rotate(25deg); }
+.progress-circle.p8 .value-bar { transform: rotate(29deg); }
+.progress-circle.p9 .value-bar { transform: rotate(32deg); }
+.progress-circle.p10 .value-bar { transform: rotate(36deg); }
+.progress-circle.p11 .value-bar { transform: rotate(40deg); }
+.progress-circle.p12 .value-bar { transform: rotate(43deg); }
+.progress-circle.p13 .value-bar { transform: rotate(47deg); }
+.progress-circle.p14 .value-bar { transform: rotate(50deg); }
+.progress-circle.p15 .value-bar { transform: rotate(54deg); }
+.progress-circle.p16 .value-bar { transform: rotate(58deg); }
+.progress-circle.p17 .value-bar { transform: rotate(61deg); }
+.progress-circle.p18 .value-bar { transform: rotate(65deg); }
+.progress-circle.p19 .value-bar { transform: rotate(68deg); }
+.progress-circle.p20 .value-bar { transform: rotate(72deg); }
+.progress-circle.p21 .value-bar { transform: rotate(76deg); }
+.progress-circle.p22 .value-bar { transform: rotate(79deg); }
+.progress-circle.p23 .value-bar { transform: rotate(83deg); }
+.progress-circle.p24 .value-bar { transform: rotate(86deg); }
+.progress-circle.p25 .value-bar { transform: rotate(90deg); }
+.progress-circle.p26 .value-bar { transform: rotate(94deg); }
+.progress-circle.p27 .value-bar { transform: rotate(97deg); }
+.progress-circle.p28 .value-bar { transform: rotate(101deg); }
+.progress-circle.p29 .value-bar { transform: rotate(104deg); }
+.progress-circle.p30 .value-bar { transform: rotate(108deg); }
+.progress-circle.p31 .value-bar { transform: rotate(112deg); }
+.progress-circle.p32 .value-bar { transform: rotate(115deg); }
+.progress-circle.p33 .value-bar { transform: rotate(119deg); }
+.progress-circle.p34 .value-bar { transform: rotate(122deg); }
+.progress-circle.p35 .value-bar { transform: rotate(126deg); }
+.progress-circle.p36 .value-bar { transform: rotate(130deg); }
+.progress-circle.p37 .value-bar { transform: rotate(133deg); }
+.progress-circle.p38 .value-bar { transform: rotate(137deg); }
+.progress-circle.p39 .value-bar { transform: rotate(140deg); }
+.progress-circle.p40 .value-bar { transform: rotate(144deg); }
+.progress-circle.p41 .value-bar { transform: rotate(148deg); }
+.progress-circle.p42 .value-bar { transform: rotate(151deg); }
+.progress-circle.p43 .value-bar { transform: rotate(155deg); }
+.progress-circle.p44 .value-bar { transform: rotate(158deg); }
+.progress-circle.p45 .value-bar { transform: rotate(162deg); }
+.progress-circle.p46 .value-bar { transform: rotate(166deg); }
+.progress-circle.p47 .value-bar { transform: rotate(169deg); }
+.progress-circle.p48 .value-bar { transform: rotate(173deg); }
+.progress-circle.p49 .value-bar { transform: rotate(176deg); }
+.progress-circle.p50 .value-bar { transform: rotate(180deg); }
+.progress-circle.p51 .value-bar { transform: rotate(184deg); }
+.progress-circle.p52 .value-bar { transform: rotate(187deg); }
+.progress-circle.p53 .value-bar { transform: rotate(191deg); }
+.progress-circle.p54 .value-bar { transform: rotate(194deg); }
+.progress-circle.p55 .value-bar { transform: rotate(198deg); }
+.progress-circle.p56 .value-bar { transform: rotate(202deg); }
+.progress-circle.p57 .value-bar { transform: rotate(205deg); }
+.progress-circle.p58 .value-bar { transform: rotate(209deg); }
+.progress-circle.p59 .value-bar { transform: rotate(212deg); }
+.progress-circle.p60 .value-bar { transform: rotate(216deg); }
+.progress-circle.p61 .value-bar { transform: rotate(220deg); }
+.progress-circle.p62 .value-bar { transform: rotate(223deg); }
+.progress-circle.p63 .value-bar { transform: rotate(227deg); }
+.progress-circle.p64 .value-bar { transform: rotate(230deg); }
+.progress-circle.p65 .value-bar { transform: rotate(234deg); }
+.progress-circle.p66 .value-bar { transform: rotate(238deg); }
+.progress-circle.p67 .value-bar { transform: rotate(241deg); }
+.progress-circle.p68 .value-bar { transform: rotate(245deg); }
+.progress-circle.p69 .value-bar { transform: rotate(248deg); }
+.progress-circle.p70 .value-bar { transform: rotate(252deg); }
+.progress-circle.p71 .value-bar { transform: rotate(256deg); }
+.progress-circle.p72 .value-bar { transform: rotate(259deg); }
+.progress-circle.p73 .value-bar { transform: rotate(263deg); }
+.progress-circle.p74 .value-bar { transform: rotate(266deg); }
+.progress-circle.p75 .value-bar { transform: rotate(270deg); }
+.progress-circle.p76 .value-bar { transform: rotate(274deg); }
+.progress-circle.p77 .value-bar { transform: rotate(277deg); }
+.progress-circle.p78 .value-bar { transform: rotate(281deg); }
+.progress-circle.p79 .value-bar { transform: rotate(284deg); }
+.progress-circle.p80 .value-bar { transform: rotate(288deg); }
+.progress-circle.p81 .value-bar { transform: rotate(292deg); }
+.progress-circle.p82 .value-bar { transform: rotate(295deg); }
+.progress-circle.p83 .value-bar { transform: rotate(299deg); }
+.progress-circle.p84 .value-bar { transform: rotate(302deg); }
+.progress-circle.p85 .value-bar { transform: rotate(306deg); }
+.progress-circle.p86 .value-bar { transform: rotate(310deg); }
+.progress-circle.p87 .value-bar { transform: rotate(313deg); }
+.progress-circle.p88 .value-bar { transform: rotate(317deg); }
+.progress-circle.p89 .value-bar { transform: rotate(320deg); }
+.progress-circle.p90 .value-bar { transform: rotate(324deg); }
+.progress-circle.p91 .value-bar { transform: rotate(328deg); }
+.progress-circle.p92 .value-bar { transform: rotate(331deg); }
+.progress-circle.p93 .value-bar { transform: rotate(335deg); }
+.progress-circle.p94 .value-bar { transform: rotate(338deg); }
+.progress-circle.p95 .value-bar { transform: rotate(342deg); }
+.progress-circle.p96 .value-bar { transform: rotate(346deg); }
+.progress-circle.p97 .value-bar { transform: rotate(349deg); }
+.progress-circle.p98 .value-bar { transform: rotate(353deg); }
+.progress-circle.p99 .value-bar { transform: rotate(356deg); }
+.progress-circle.p100 .value-bar { transform: rotate(360deg); }
+</style>
+
+<!--Entire Document is mounted here -->
+<div id="rootDiv"><div id="downloadBar"></div></div>
+
+<script>
+const  cryptocoin = "FLO_TEST"
+const mainnet = `https://flosight.duckdns.org`;
+const testnet = `https://testnet-flosight.duckdns.org`;
+const adminID = "oTZw3ydCRKDhcYC5Bp6mRJMGTTVv9JHtg8";
+if(cryptocoin == "FLO")
+  var server = mainnet;
+else if(cryptocoin == "FLO_TEST")
+  var server = testnet;
+        torrents = []
+</script>
+<script id="userNonPresentationData">
+  //User Data Section. Keep things that will fetch user non-presentation data here
+  //Do not put presentation elements here. Presentation elements will need rePainting when screens are resized. Put them in next script tag UserPresentationCode under function rePaintUserData()
+
+
+
+
+
+
+  function userDataStartUp(){
+    console.log("StartUp");
+
+  /*  var waitForGlobal = function(param, callback) {
+      if (!window[param]) {
+        callback();
+      } else {
+        setTimeout(function() {
+          waitForGlobal(param, callback);
+        }, 100);
+      }
+    };
+*/
+    getDatafromAPI().then(function (res) {
+      getDataFromIDB().then(function (response) {
+        torrents = response.reverse();
+        console.log(torrents);
+        screenAlpha.totalBoxes = torrents.length+1;
+        oneTimeTasks();
+        rePaint();
+      }).catch(function (error) {
+          console.log(error.message);
+      });
+    }).catch(function (error) {
+        console.log(error.message);
+    });
+
+
+    function storedata(torrentdata){
+      return new Promise(
+        function(resolve, reject) {
+          var idb = indexedDB.open("FLO_Torrent");
+          idb.onerror = function(event) {
+              console.log("Error in opening IndexedDB!");
+          };
+          idb.onsuccess = function(event) {
+              var db = event.target.result;
+              var obs = db.transaction('torrents', "readwrite").objectStore('torrents');
+              objectRequest = obs.put(torrentdata);
+              objectRequest.onerror = function(event) {
+                  reject(Error('Error occured: Unable to store data'));
+                };
+
+              objectRequest.onsuccess = function(event) {
+                  resolve('Data saved OK');
+              db.close();
+            };
+           };
+         }
+       );
+     }
+
+      function getDatafromAPI(){
+        return new Promise(
+          function(resolve, reject) {
+        var idb = indexedDB.open("FLO_Torrent");
+        idb.onerror = function(event) {
+            reject("Error in opening IndexedDB!");
+        };
+        idb.onupgradeneeded = function(event) {
+               var objectStore = event.target.result.createObjectStore("torrents", { keyPath: "id", autoIncrement:true });
+               objectStore.createIndex("filename", "filename", { unique: false });
+               objectStore.createIndex("type", "type", { unique: false });
+               objectStore.createIndex("size", "size", { unique: false });
+               objectStore.createIndex("description", "description", { unique: false });
+               objectStore.createIndex("tags", "tags", { unique: false });
+               objectStore.createIndex("chunks", "chunks", { unique: false });
+               objectStore.createIndex("startTx", "startTx", { unique: false });
+               objectStore.createIndex("uploader", "uploader", { unique: false });
+               var objectStore2 = event.target.result.createObjectStore("lastTx");
+        };
+          idb.onsuccess = function(event) {
+               var db = event.target.result;
+               var lastTx = db.transaction('lastTx', "readwrite").objectStore('lastTx');
+               var addr = adminID;
+               var lastTxReq = lastTx.get(addr);
+                 lastTxReq.onsuccess = function(event){
+                    var lasttx = event.target.result
+                    if(lasttx === undefined){
+                        lasttx = 0;
+                    }
+                    var response = ajax("GET",`api/addrs/${addr}/txs`);
+                    var nRequired = JSON.parse(response).totalItems - lasttx;
+                    console.log(nRequired);
+                    while(true && nRequired){
+                      var response = ajax("GET",`api/addrs/${addr}/txs?from=0&to=${nRequired}`);
+                      response = JSON.parse(response);
+                      if (nRequired + lasttx != response.totalItems ){
+                        nRequired = response.totalItems - lasttx;
+                        continue;
+                      }
+                      response.items.reverse().forEach(function(tx){
+                        try {
+                          //console.log(tx.floData)
+                          torrentdata = JSON.parse(tx.floData).FLO_Torrent;
+                          if(torrentdata === undefined)
+                            return;
+                          //console.log(torrentdata);
+                          data = {filename : torrentdata.filename, type : torrentdata.type,uploader:tx.vin[0].addr, description:torrentdata.description, size:torrentdata.size,tags:torrentdata.tags,chunks:torrentdata.chunks,startTx:torrentdata.startTx};
+                          storedata(data).then(function (response) {
+                          }).catch(function (error) {
+                              //console.log(error.message);
+                          });
+                        } catch (e) {
+                          //console.log(e)
+                        }
+                      });
+                      var idb2 = indexedDB.open("FLO_Torrent");
+                      idb2.onerror = function(event) {
+                          console.log("Error in opening IndexedDB!");
+                      };
+                      idb2.onsuccess = function(event) {
+                          var dbt = event.target.result;
+                          var obs = dbt.transaction('lastTx', "readwrite").objectStore('lastTx');
+                          obs.put(response.totalItems,addr);
+                          dbt.close();
+                       };
+                        break;
+                      }
+                      resolve('retrived data from API');
+                  };
+                  db.close();
+                };
+             });
+          }
+    function getDataFromIDB(){
+    return new Promise(
+    function(resolve, reject) {
+        var idb = indexedDB.open("FLO_Torrent");
+         idb.onerror = function(event) {
+             reject("Error in opening IndexedDB!");
+         };
+         idb.onsuccess = function(event) {
+           var db = event.target.result;
+           var obs = db.transaction('torrents', "readwrite").objectStore('torrents');
+           torrentdetails = [];
+           var getReq = obs.getAll();
+           getReq.onsuccess = function(event) {
+             resolve(event.target.result);
+           };
+           db.close();
+         };
+       }
+     );
+    }
+
+    }
+  userDataStartUp();
+
+
+
+//This function will be called by framework for you
+  function userDataNeedingNoRePaint(){
+
+
+ }
+</script>
+
+<script>
+function ajax(method, uri){
+  var request = new XMLHttpRequest();
+  var url = `${server}/${uri}`
+  console.log(url)
+  var result;
+  request.open(method,url , false);
+  request.onload = function () {
+    if (request.readyState == 4 && request.status == 200)
+      result = this.response;
+    else {
+      console.log('error');
+      result = false;
+    }
+  };
+  request.send();
+  //console.log(result);
+  return result;
+}
+function getTorrentName(filename){
+  var n = filename.lastIndexOf(".torrent");
+  return filename.slice(0, n);
+}
+async function downloadTorrent(filename,txid,totalChunks){
+  var downloadBar = document.getElementById('downloadBar');
+  var progressBar = document.createElement("div");
+  progressBar.setAttribute("class","progress-circle p0");
+  progressBar.innerHTML = `<div class="left-half-clipper">
+                              <div class="first50-bar"></div>
+                              <div class="value-bar"></div>
+                           </div>`
+  var progressValue = document.createElement("span");
+  progressValue.innerHTML = `0%`;
+  progressBar.appendChild(progressValue);
+  downloadBar.appendChild(progressBar);
+  console.log(txid);
+  chunks = [];
+  var percent = 0;
+  try{
+    while(txid){
+        var response = ajax("GET",`/api/tx/${txid}`);
+        var floData = JSON.parse(JSON.parse(response).floData)
+        chunks.push(floData.data);
+        txid = floData.next;
+        percent = Math.round((chunks.length/totalChunks)*100)
+        progressValue.innerHTML = `${percent}%`;
+        if(percent < 50)
+          progressBar.setAttribute("class",`progress-circle p${percent}`);
+        else
+          progressBar.setAttribute("class",`progress-circle over50 p${percent}`);
+    }
+    var filedata = chunks.join("");
+    console.log(filedata);
+    download(filename,filedata);
+  }catch(e){
+    console.log(e);
+  }
+  downloadBar.removeChild(progressBar);
+}
+function download(filename, data) {
+  var element = document.createElement('a');
+  element.setAttribute('href', 'data:application/octet-stream;charset=utf-8;base64,' + data);
+  element.setAttribute('download', filename);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+}
+</script>
+
+
+<script id="SystemConfiguration">
+
+   var screenAlpha ={};
+  //Main configuration for number of boxes in grid. You only have to define minimum width, minimum height and total number of boxes. Positioning will be taken care of by the code
+  screenAlpha.boxMinimumWidth = 300;
+  screenAlpha.boxMinimumHeight = 300;
+  screenAlpha.totalBoxes = 0;
+
+  //Turn them false when layout job is done
+  screenAlpha.lastUserDivShouldCoverWholeLine  = false;
+  screenAlpha.showBaseDivNumber = false  ;
+  screenAlpha.showBaseDivBackground = true;
+  screenAlpha.showLastOverLayDivBackground = true;
+
+  //Styling Information for base Div grid, and overlay Div grid
+  screenAlpha.baseDivGridBackground = "white";
+  screenAlpha.OverlayDivGridBackground =["pink","#DBB1CD","#E8B5CE","pink","#F0EAD6",]
+  screenAlpha.OverlayDivOpacity ="0.8";
+
+
+
+</script>
+
+
+<script id="UserPresentationCode">
+/*
+
+  1. You can create your own overlay divs, and put user HTML/Javascript code inside it. Give it space by calling createUserDiv(baseDivNumber,howManyAdjacentDivs,heightMultiplier)
+  2. Keep static calculations outside rePainting zone in <script id="script_userNonPresentationData"> section
+  3. Keep all the screen specific display in <script id="script_UserPresentationData"> zone
+  4. All user presentation code should strictly be inside the function rePaintUserData()
+*/
+  function rePaintUserData(){
+  //createUserDiv(baseDivNumber,howManyAdjacentDivs,heightMultiplier)
+ /*
+  //Creates a user div which spans the entire line with id div_overlay_2 which be used to style and put content inside the div. Positioning has been taken care of
+    createUserDiv(6,"full_line",1);
+
+  //Creates a user div which spans 2 adjacent divs or end of line if those adjacent divs are could not be placed. The height is 3 row of divs. Div id is div_overlay_7
+    createUserDiv(15,2,3);
+
+   // You get last overly div ID for free if screenAlpha.lastUserDivShouldCoverWholeLine  = true;
+    if(screenAlpha.lastBaseDivNumber) document.getElementById("div_overlay_"+screenAlpha.lastBaseDivNumber).innerHTML="Last overlay DIV takes the whole row if configured that way";
+ */
+
+    var x0 = createUserDiv(0);
+   // x0.style.backgroundColor = "#222";
+    x0.innerHTML = `<h1>FLO Torrents <i class="fab fa-bitcoin"></i></h1>`;
+
+    for(var i=0;i<torrents.length;i++){
+      var grid =  createUserDiv(i+1);
+      grid.setAttribute("class","torrent-grid");
+      grid.innerHTML = `<a href="javascript:downloadTorrent('${torrents[i].filename}','${torrents[i].startTx}',${torrents[i].chunks})"><div class="torrent-name">${getTorrentName(torrents[i].filename)}</div></a>
+                        <div class="torrent-uploader">-by- ${torrents[i].uploader}</div>
+                        <div class="torrent-type">[${torrents[i].type}]</div>
+                        <div class="torrent-description">${torrents[i].description}</div>
+                        <div class="torrent-tags">Tags : ${torrents[i].tags}</div>`
+    }
+
+//On repainting .. it creates that number again .. and updates getLastUserDivNumber ..
+
+} // Main function end
+</script>
+
+<script id="script_last">
+//Positioning section
+//Keep this script tag section as the last tag
+
+//Do not touch these settings
+  screenAlpha.widthAdjustment = 18;
+  screenAlpha.heightAdjustment = 20;
+  screenAlpha.baseDivIdList = [];
+  screenAlpha.userDivIdList = [];
+  screenAlpha.lastBaseDivNumber = screenAlpha.totalBoxes -1;
+  screenAlpha.lastUserDivNumber = 0;
+
+//One time tasks not needing repainting
+
+
+  function oneTimeTasks(){
+    createAllBaseDivs(screenAlpha.totalBoxes);
+    userDataNeedingNoRePaint();
+  }
+
+  function createAllBaseDivs(totalBoxes){
+      var index;
+      for (index = 0; index < totalBoxes; index++) {
+      var divId = "div_"+index;
+      createSingleBaseDiv(divId);
+      screenAlpha.baseDivIdList.push(divId);
+    }
+  }
+
+  function createSingleBaseDiv(divId){
+   var divCreated = document.createElement("div");
+   divCreated.id=divId;
+   divCreated.style.position = "absolute";
+   if(screenAlpha.showBaseDivBackground) {
+      divCreated.classList.add("baseDiv");
+      }
+   rootDiv.appendChild(divCreated);
+ }
+
+//Tasks needing repainting
+  function rePaint(){
+    screenAlpha.boxDetails = boxesPerRowData(screenAlpha.boxMinimumWidth,screenAlpha.boxMinimumHeight);
+    rootDivSetDimensions("rootDiv");
+    positionTheBaseDivs();
+    if(screenAlpha.lastUserDivShouldCoverWholeLine ) lastBaseDivOverlay();
+    if(screenAlpha.showBaseDivBackground) {
+      document.getElementById("rootDiv").style.backgroundColor = screenAlpha.baseDivGridBackground;
+      }
+
+    rePaintUserData();
+    }
+
+  function rootDivSetDimensions (rootElementId){
+    var divSelected = document.getElementById(rootElementId);
+    divSelected.style.width = (window.innerWidth-screenAlpha.widthAdjustment);
+    divSelected.style.height = Math.ceil(screenAlpha.totalBoxes/screenAlpha.boxDetails.numberOfBoxesInRow)*screenAlpha.boxMinimumHeight;
+    }
+
+  function boxesPerRowData(boxMinimumWidth, boxMinimumHeight){
+    var boxDetails = {};
+    var numberOfBoxesInRow = Math.floor((window.innerWidth-screenAlpha.widthAdjustment)/boxMinimumWidth);
+    var spillOverPerRow = (window.innerWidth-screenAlpha.widthAdjustment) - numberOfBoxesInRow*boxMinimumWidth;
+    if (numberOfBoxesInRow == 0) {numberOfBoxesInRow = 1}; //to solve Divide by Zero problem
+    var spillOverPerBox = spillOverPerRow/numberOfBoxesInRow;
+    var boxEffectiveWidth = boxMinimumWidth + spillOverPerBox;
+    boxDetails.numberOfBoxesInRow = numberOfBoxesInRow;
+    boxDetails.boxEffectiveWidth = boxEffectiveWidth;
+    screenAlpha.numberOfBoxesInRow = numberOfBoxesInRow;
+    screenAlpha.boxEffectiveWidth = boxEffectiveWidth;
+    return boxDetails;
+  }
+
+ function topAndLeftPositionOfBaseDivs(divNumber){
+    heightPositionMultiplier = Math.floor(divNumber/screenAlpha.boxDetails.numberOfBoxesInRow);
+    widthPositionMultiplier = divNumber % screenAlpha.boxDetails.numberOfBoxesInRow;
+    topPosition = screenAlpha.boxMinimumHeight*heightPositionMultiplier;
+    leftPosition = screenAlpha.boxDetails.boxEffectiveWidth*widthPositionMultiplier;
+    screenAlpha["div_"+divNumber+"_topPosition"] = topPosition;
+    screenAlpha["div_"+divNumber+"_leftPosition"] = leftPosition;
+  }
+
+  function positionTheBaseDivs(){
+    var index;
+    for (index = 0; index < screenAlpha.baseDivIdList.length; index++) {
+    topAndLeftPositionOfBaseDivs(index);
+    var divId = "div_"+index;
+    document.getElementById(divId).style.top=screenAlpha["div_"+index+"_topPosition"]+"px";
+    document.getElementById(divId).style.left=screenAlpha["div_"+index+"_leftPosition"]+"px";
+    document.getElementById(divId).style.width=screenAlpha.boxDetails.boxEffectiveWidth+"px";
+    document.getElementById(divId).style.height = screenAlpha.boxMinimumHeight+"px";
+    if(screenAlpha.showBaseDivNumber) document.getElementById(divId).innerHTML = index;
+      }
+    }
+
+   function createUserDiv(baseDivNumber,howManyAdjacentDivs=1,heightMultiplier=1){
+     var topPosition = screenAlpha["div_"+baseDivNumber+"_topPosition"];
+     if (howManyAdjacentDivs == "full_line") {
+       var divWidth = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
+       var leftPosition = "0";
+       }
+     else
+     {
+       var originalLeftPosition = screenAlpha["div_"+baseDivNumber+"_leftPosition"];
+       //Obtain the lowest width of 3 possibilities for overlay
+       var divWidth1 = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
+       var divWidth2 = howManyAdjacentDivs*screenAlpha.boxEffectiveWidth;
+       var divWidth3 = divWidth1 - screenAlpha["div_"+baseDivNumber+"_leftPosition"];
+       var divWidthTemp = (divWidth1 > divWidth2) ? divWidth2 : divWidth1;
+       var divWidth = (divWidthTemp > divWidth3) ? divWidth3 : divWidthTemp;
+     }
+     var divHeight = screenAlpha.boxMinimumHeight*heightMultiplier;
+     var divId="div_overlay_"+baseDivNumber;
+    if (!document.getElementById(divId)){
+     var overlayDiv = document.createElement("div");
+     overlayDiv.id=divId;
+     overlayDiv.style.position = "absolute";
+     document.getElementById("rootDiv").appendChild(overlayDiv)
+    }
+     var overlayDiv = document.getElementById(divId);
+     overlayDiv.style.top = topPosition+"px";screenAlpha[divId+"_top"]=topPosition;
+     if(howManyAdjacentDivs == "full_line") {screenAlpha[divId+"_left"]=0 } else {overlayDiv.style.left=originalLeftPosition+"px";screenAlpha[divId+"_left"]=originalLeftPosition};
+     overlayDiv.style.width=divWidth+"px";screenAlpha[divId+"_width"]=divWidth;
+     overlayDiv.style.height=divHeight+"px";screenAlpha[divId+"_height"]=divHeight;
+     if(screenAlpha.showLastOverLayDivBackground) {
+      overlayDiv.style.backgroundColor=screenAlpha.OverlayDivGridBackground[baseDivNumber%screenAlpha.OverlayDivGridBackground.length];
+      overlayDiv.style.opacity=screenAlpha.OverlayDivOpacity;
+      if(screenAlpha.showBaseDivNumber) {
+        overlayDiv.innerHTML="<span style='position:relative;left:20px'>Overlay Div Number "+baseDivNumber+"</span>";}
+     }
+     if(!screenAlpha.userDivIdList.includes(divId)) {
+      screenAlpha.userDivIdList.push(divId);
+      }
+
+
+     return document.getElementById("div_overlay_"+baseDivNumber);
+   }
+
+   function getUserDivDimensions(userDivNumber){
+     var x = {};
+     x.height = screenAlpha["div_overlay_"+userDivNumber+"_height"];
+     x.width = screenAlpha["div_overlay_"+userDivNumber+"_width"];
+     x.top = screenAlpha["div_overlay_"+userDivNumber+"_top"];
+     x.left = screenAlpha["div_overlay_"+userDivNumber+"_left"];
+     return x;
+    }
+
+   function lastBaseDivOverlay(){
+    //Last div will take over the whole line if the screenAlpha.lastUserDivShouldCoverWholeLine  configuration allows is
+    var lastBaseDivNumber = screenAlpha.totalBoxes - 1 ;
+    createUserDiv(lastBaseDivNumber,"full_line",1)
+   }
+
+   function getLastUserDivNumber(){
+
+      function removeLargest(arr) {
+      var min = Math.max.apply(null, arr);
+      return arr.filter((e) => {return e != min});
+      }
+
+      var extractNumbers = screenAlpha.userDivIdList.map(x => {return parseInt(x.replace("div_overlay_",""))});
+      if (screenAlpha.lastUserDivShouldCoverWholeLine) extractNumbers = removeLargest(extractNumbers);
+      if (typeof extractNumbers !== 'undefined' && extractNumbers.length > 0) { var highestValue = extractNumbers.reduce((a,b)=>{return a>b?a:b;});} else {highestValue = 0};
+
+    // This condition is screwing me
+    //  if (highestValue >= screenAlpha.lastUserDivNumber) {return "All base divs are taken" } else {return highestValue+1};
+     return highestValue+1
+   }
+
+//End of positioning code
+</script>
+
+</body>
+</html>
