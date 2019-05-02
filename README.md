@@ -39,7 +39,7 @@ Note : The file name of the torrent will be the torrent name.
 ## FLO Torrentz
 FLO_torrentz is used to view the list of torrents uploaded to the blockchain
 ### Instructions
-1. Open the `FLO_torrentz.html` in a web browser.
+1. Open the `FLO_Torrentz.html` in a web browser.
 2. The torrent list will be retrived from the blockchain using API and stored in IDB (local browser storage).
 3. Click on the Torrent which you wish to download. (The uploader FLO_ID will also be shown).
 4. The Torrent file will be retrived from the blockchain using API and then you can open/save the torrent file.
