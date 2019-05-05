@@ -28,13 +28,11 @@ FLO_torrentUploader is used to upload the torrent file to the blockchain.
 1. Open the `FLO_torrentUploader.html` in a Web Browser
 2. Enter Uploader's FLO_ID (FLO address)
 3. Browse/Select the torrent file from the local storage.
-4. Enter the Torrent type, description and tags in the respective fields
+4. Enter the Torrent name, type, description and tags in the respective fields
 5. Click the `Upload torrent` button
 6. The balance of the FLO_ID and the fee required to upload the will be displayed in alert box.
 7. Confirm and Enter the Private key of the FLO_ID when prompted.
 8. The torrent file will be uploaded to the blockchain and the reference txid will be displayed.
-
-Note : The file name of the torrent will be the torrent name.
 
 ## FLO Torrentz
 FLO_torrentz is used to view the list of torrents uploaded to the blockchain
