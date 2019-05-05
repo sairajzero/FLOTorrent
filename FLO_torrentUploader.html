@@ -170,7 +170,8 @@
   </fieldset>
   <fieldset>
   <legend><span class="number">2</span> Torrent Info</legend>
-  <input type="file" id="torrentFile" class="inputfile inputfile-4" />
+	<input type="text" id="name" placeholder="Torrent Name"/>
+  <input type="file" id="torrentFile"/>
   <select id="type">
     <option value="" disabled selected>Torrent Type</option>
     <option value="Movie">Movie</option>
@@ -184,7 +185,7 @@
     <option value="Misc">Misc</option>
   </select>
   <textarea id="description" placeholder="Torrent Description"></textarea>
-  <input type="text" id="tags" placeholder="Torrent Tags">
+  <input type="text" id="tags" placeholder="Torrent Tags"/>
   </fieldset>
   <input type="button" value="Upload Torrent " onclick="processFile()"/>
   </form>
@@ -194,7 +195,7 @@
     const  cryptocoin = "FLO_TEST"
     const mainnet = `https://flosight.duckdns.org/`;
     const testnet = `https://testnet-flosight.duckdns.org/`;
-    const adminID = "oTZw3ydCRKDhcYC5Bp6mRJMGTTVv9JHtg8";
+    const adminID = "oW8i29qzPXX2TZ5Wb4pYkH456ccMznzYoM";
     if(cryptocoin == "FLO")
       var server = mainnet;
     else if(cryptocoin == "FLO_TEST")
@@ -290,6 +291,7 @@ function processFile(){
 		document.getElementById("overlay").style.display = "none";
 		return
 	}
+	var name = document.getElementById("name").value;
 	var type = document.getElementById("type").value;
 	var description = document.getElementById("description").value;
 	var tags = document.getElementById("tags").value;
@@ -307,10 +309,11 @@ function processFile(){
 		if (totalFee > balance){
 			alert(`Your net balance is : ${balance}\nTotal fee for upload : ${totalFee}\nBalance is Insufficient to upload`);
 			document.getElementById("overlay").style.display = "none";
+			return;
 		}
 		var res = confirm(`Your net balance is : ${balance}\nTotal fee for upload : ${totalFee}\nConfirm to upload into blockchain?`);
 		if (res){
-			sendDataToBlockchain(floID,file.name,type,description,tags,file.size,chunks,overlay,overlaytext).then(function(result){
+			sendDataToBlockchain(floID,name,file.name,type,description,tags,file.size,chunks,overlay,overlaytext).then(function(result){
 				alert(result)
 			}).catch(function(error){
 				alert(error);
@@ -323,7 +326,7 @@ function processFile(){
 	};
 	reader.readAsBinaryString(file);
 }
-function sendDataToBlockchain(floID,filename,type,description,tags,filesize,chunks,overlay,overlaytext){
+function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize,chunks,overlay,overlaytext){
 	return new Promise(
 		async function(resolve,reject){
 			var wif = prompt("Enter FLO private key (WIF) : ");
@@ -356,9 +359,9 @@ function sendDataToBlockchain(floID,filename,type,description,tags,filesize,chun
 				progress.style.width = progressWidth + '%';
 			}
 			overlaytext.innerHTML = "Uploading Header..."
-			var header = JSON.stringify({FLO_Torrent:{filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
+			var header = JSON.stringify({FLO_Torrent:{name:name,filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
 			if(header.length>=1048){
-				reject(`Description/Tags is too big! Reduce Description/Tag and Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
+				reject(`Header is too big! Reduce Headers and Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
 			}
 			var headerTxid = sendTransaction(floID,adminID,utxos,chunks.length,header,wif);
 			if(!headerTxid)
