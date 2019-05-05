@@ -1,13 +1,11 @@
 <html>
 <head>
-  <title>FLO Torrent</title>
 
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
 
   <link href="https://fonts.googleapis.com/css?family=Titillium+Web" rel="stylesheet">
 
 </head>
-
 
 <body onload="rePaint()" onresize="rePaint()">
 
@@ -50,52 +48,117 @@ font-size: 1em;
 }
 
 h1 {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+
 
   font-size: 28px;
   font-weight: 400;
   padding: 0 0 15px;
 }
 
-a{
-    text-decoration: none;
+
+.flexcontainer {
+display: flex;
+flex-wrap: wrap;
+justify-content: space-around;
+align-items: center;
+align-content: space-around;
+
+
+}
+
+</style>
+<style>
+svg {
+  fill: currentColor;
+}
+.btn {
+  border: none;
+  padding: 10px 10px;
+  color:inherit;
+  background-color: inherit;
+  cursor: pointer;
+  font-size: 20px;
+  -webkit-transition-duration: 0.4s; /* Safari */
+  transition-duration: 0.4s;
+}
+
+/* Darker background on mouse-over */
+.btn:hover {
+  box-shadow: 0px 0px 5px rgb(0,0,0,0.5);
+}
+/*Torrent content grid */
+.front-torrent-name{
+  font-size: 32px;
+  padding: 5px;
 }
 .torrent-name{
-  font-size: 20px;
-	color: #FFFFFF;
-  text-align: center;
-  padding: 10px;
+  font-size: 22px;
+  padding: 5px;
 }
 .torrent-uploader{
-  font-size: 16px;
-	color: #FFFFFF;
-  text-align: center;
-  padding: 10px;
+  font-size: 24px;
+  padding: 5px;
 }
 .torrent-type{
-  font-size: 14px;
-	color: #FFFFFF;
-  text-align: center;
-  padding: 10px;
+  font-size: 20px;
+  padding: 5px;
 }
 .torrent-description{
-  font-size: 16px;
-	color: #FFFFFF;
-  text-align: center;
-  padding: 10px;
+  font-size: 14px;
+  padding: 5px;
 }
 .torrent-tags{
-  font-size: 12px;
-	color: #FFFFFF;
+  font-size: 14px;
+  padding: 5px;
+}
+
+.flip-card {
+  background-color: transparent;
+  perspective: 1000px; /* Remove this if you don't want the 3D effect */
+  overflow-wrap: break-word;
+}
+
+/* This container is needed to position the front and back side */
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
   text-align: center;
-  padding: 10px;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
 }
 
 
+/* Do an horizontal flip when you move the mouse over the flip box container */
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+  box-shadow: 0px 0px 20px rgb(0,0,0,0.5);
+}
 
+
+/* Position the front and back side */
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: rotateY(0deg);
+}
+
+/* Style the front side (fallback if image is missing) */
+.flip-card-front {
+  color: white;
+  text-align: center;
+}
+
+/* Style the back side */
+.flip-card-back {
+  color: white;
+  text-align: center;
+  transform: rotateY(180deg);
+}
 
 </style>
 <style>
@@ -283,7 +346,6 @@ a{
 .progress-circle.p99 .value-bar { transform: rotate(356deg); }
 .progress-circle.p100 .value-bar { transform: rotate(360deg); }
 </style>
-
 <!--Entire Document is mounted here -->
 <div id="rootDiv"><div id="downloadBar"></div></div>
 
@@ -291,41 +353,240 @@ a{
 const  cryptocoin = "FLO_TEST"
 const mainnet = `https://flosight.duckdns.org`;
 const testnet = `https://testnet-flosight.duckdns.org`;
-const adminID = "oTZw3ydCRKDhcYC5Bp6mRJMGTTVv9JHtg8";
+const adminID = "oW8i29qzPXX2TZ5Wb4pYkH456ccMznzYoM";
 if(cryptocoin == "FLO")
   var server = mainnet;
 else if(cryptocoin == "FLO_TEST")
   var server = testnet;
-        torrents = []
+var torrents = [];
+var searchResults = [];
+var searchKey = "";
+
 </script>
+
 <script id="userNonPresentationData">
   //User Data Section. Keep things that will fetch user non-presentation data here
   //Do not put presentation elements here. Presentation elements will need rePainting when screens are resized. Put them in next script tag UserPresentationCode under function rePaintUserData()
 
+  function storedata(torrentdata){
+    return new Promise(
+      function(resolve, reject) {
+        var idb = indexedDB.open("FLO_Torrent");
+        idb.onerror = function(event) {
+            console.log("Error in opening IndexedDB!");
+        };
+        idb.onsuccess = function(event) {
+            var db = event.target.result;
+            var obs = db.transaction('torrents', "readwrite").objectStore('torrents');
+            objectRequest = obs.put(torrentdata);
+            objectRequest.onerror = function(event) {
+                reject(Error('Error occured: Unable to store data'));
+              };
 
+            objectRequest.onsuccess = function(event) {
+                resolve('Data saved OK');
+            db.close();
+          };
+         };
+       }
+     );
+   }
 
+    function getDatafromAPI(){
+      return new Promise(
+        function(resolve, reject) {
+      var idb = indexedDB.open("FLO_Torrent");
+      idb.onerror = function(event) {
+          reject("Error in opening IndexedDB!");
+      };
+      idb.onupgradeneeded = function(event) {
+             var objectStore = event.target.result.createObjectStore("torrents", { keyPath: "id", autoIncrement:true });
+             objectStore.createIndex("name", "name", { unique: false });
+             objectStore.createIndex("filename", "filename", { unique: false });
+             objectStore.createIndex("type", "type", { unique: false });
+             objectStore.createIndex("size", "size", { unique: false });
+             objectStore.createIndex("description", "description", { unique: false });
+             objectStore.createIndex("tags", "tags", { unique: false });
+             objectStore.createIndex("chunks", "chunks", { unique: false });
+             objectStore.createIndex("startTx", "startTx", { unique: false });
+             objectStore.createIndex("uploader", "uploader", { unique: false });
+             var objectStore2 = event.target.result.createObjectStore("lastTx");
+      };
+        idb.onsuccess = function(event) {
+             var db = event.target.result;
+             var lastTx = db.transaction('lastTx', "readwrite").objectStore('lastTx');
+             var addr = adminID;
+             var lastTxReq = lastTx.get(addr);
+               lastTxReq.onsuccess = function(event){
+                  var lasttx = event.target.result
+                  if(lasttx === undefined){
+                      lasttx = 0;
+                  }
+                  var response = ajax("GET",`api/addrs/${addr}/txs`);
+                  var nRequired = JSON.parse(response).totalItems - lasttx;
+                  console.log(nRequired);
+                  while(true && nRequired){
+                    var response = ajax("GET",`api/addrs/${addr}/txs?from=0&to=${nRequired}`);
+                    response = JSON.parse(response);
+                    if (nRequired + lasttx != response.totalItems ){
+                      nRequired = response.totalItems - lasttx;
+                      continue;
+                    }
+                    response.items.reverse().forEach(function(tx){
+                      try {
+                        //console.log(tx.floData)
+                        torrentdata = JSON.parse(tx.floData).FLO_Torrent;
+                        if(torrentdata === undefined)
+                          return;
+                        //console.log(torrentdata);
+                        data = {name : torrentdata.name, filename : torrentdata.filename, type : torrentdata.type,uploader:tx.vin[0].addr, description:torrentdata.description, size:torrentdata.size,tags:torrentdata.tags,chunks:torrentdata.chunks,startTx:torrentdata.startTx};
+                        storedata(data).then(function (response) {
+                        }).catch(function (error) {
+                            //console.log(error.message);
+                        });
+                      } catch (e) {
+                        //console.log(e)
+                      }
+                    });
+                    var idb2 = indexedDB.open("FLO_Torrent");
+                    idb2.onerror = function(event) {
+                        console.log("Error in opening IndexedDB!");
+                    };
+                    idb2.onsuccess = function(event) {
+                        var dbt = event.target.result;
+                        var obs = dbt.transaction('lastTx', "readwrite").objectStore('lastTx');
+                        obs.put(response.totalItems,addr);
+                        dbt.close();
+                     };
+                      break;
+                    }
+                    resolve('retrived data from API');
+                };
+                db.close();
+              };
+           });
+        }
+  function getDataFromIDB(){
+  return new Promise(
+  function(resolve, reject) {
+      var idb = indexedDB.open("FLO_Torrent");
+       idb.onerror = function(event) {
+           reject("Error in opening IndexedDB!");
+       };
+       idb.onsuccess = function(event) {
+         var db = event.target.result;
+         var obs = db.transaction('torrents', "readwrite").objectStore('torrents');
+         torrentdetails = [];
+         var getReq = obs.getAll();
+         getReq.onsuccess = function(event) {
+           resolve(event.target.result);
+         };
+         db.close();
+       };
+     }
+   );
+  }
 
-
-
-  function userDataStartUp(){
-    console.log("StartUp");
-
-  /*  var waitForGlobal = function(param, callback) {
-      if (!window[param]) {
-        callback();
-      } else {
-        setTimeout(function() {
-          waitForGlobal(param, callback);
-        }, 100);
+  function ajax(method, uri){
+    var request = new XMLHttpRequest();
+    var url = `${server}/${uri}`
+    console.log(url)
+    var result;
+    request.open(method,url , false);
+    request.onload = function () {
+      if (request.readyState == 4 && request.status == 200)
+        result = this.response;
+      else {
+        console.log('error');
+        result = false;
       }
     };
-*/
+    request.send();
+    //console.log(result);
+    return result;
+  }
+
+  async function downloadTorrent(filename,txid,totalChunks){
+    var downloadBar = document.getElementById('downloadBar');
+    var progressBar = document.createElement("div");
+    progressBar.setAttribute("class","progress-circle p0");
+    progressBar.innerHTML = `<div class="left-half-clipper">
+                                <div class="first50-bar"></div>
+                                <div class="value-bar"></div>
+                             </div>`
+    var progressValue = document.createElement("span");
+    progressValue.innerHTML = `0%`;
+    progressBar.appendChild(progressValue);
+    downloadBar.appendChild(progressBar);
+    console.log(txid);
+    chunks = [];
+    var percent = 0;
+    try{
+      while(txid){
+          var response = ajax("GET",`/api/tx/${txid}`);
+          var floData = JSON.parse(JSON.parse(response).floData)
+          chunks.push(floData.data);
+          txid = floData.next;
+          percent = Math.round((chunks.length/totalChunks)*100)
+          progressValue.innerHTML = `${percent}%`;
+          if(percent < 50)
+            progressBar.setAttribute("class",`progress-circle p${percent}`);
+          else
+            progressBar.setAttribute("class",`progress-circle over50 p${percent}`);
+      }
+      var filedata = chunks.join("");
+      console.log(filedata);
+      download(filename,filedata);
+    }catch(e){
+      console.log(e);
+    }
+    downloadBar.removeChild(progressBar);
+  }
+  function download(filename, data) {
+    var element = document.createElement('a');
+    element.setAttribute('href', 'data:application/octet-stream;charset=utf-8;base64,' + data);
+    element.setAttribute('download', filename);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  }
+
+function searchTorrents(){
+  try{
+    searchKey = document.getElementById("search").value;
+    console.log(searchKey);
+    searchResults = [];
+    for(var i = 0; i <torrents.length; i++){
+      if(torrents[i].name.includes(searchKey) || torrents[i].tags.includes(searchKey) || torrents[i].description.includes(searchKey))
+        searchResults.push(i);
+      rePaint();
+    }
+  }catch(e){
+      console.log(e);
+  }
+}
+
+function clearSearch(){
+  searchKey = "";
+  searchResults = torrents;
+  try{
+    rePaint();
+  }catch(e){
+    console.log(e);
+  }
+}
+
+//This function will be called by framework for you
+  function userDataNeedingNoRePaint(){
+    console.log("StartUp");
     getDatafromAPI().then(function (res) {
       getDataFromIDB().then(function (response) {
         torrents = response.reverse();
         console.log(torrents);
-        screenAlpha.totalBoxes = torrents.length+1;
-        oneTimeTasks();
+        searchResults = [];
+        for(var i=0 ; i<torrents.length;i++)
+          searchResults.push(i);
         rePaint();
       }).catch(function (error) {
           console.log(error.message);
@@ -333,228 +594,30 @@ else if(cryptocoin == "FLO_TEST")
     }).catch(function (error) {
         console.log(error.message);
     });
-
-
-    function storedata(torrentdata){
-      return new Promise(
-        function(resolve, reject) {
-          var idb = indexedDB.open("FLO_Torrent");
-          idb.onerror = function(event) {
-              console.log("Error in opening IndexedDB!");
-          };
-          idb.onsuccess = function(event) {
-              var db = event.target.result;
-              var obs = db.transaction('torrents', "readwrite").objectStore('torrents');
-              objectRequest = obs.put(torrentdata);
-              objectRequest.onerror = function(event) {
-                  reject(Error('Error occured: Unable to store data'));
-                };
-
-              objectRequest.onsuccess = function(event) {
-                  resolve('Data saved OK');
-              db.close();
-            };
-           };
-         }
-       );
-     }
-
-      function getDatafromAPI(){
-        return new Promise(
-          function(resolve, reject) {
-        var idb = indexedDB.open("FLO_Torrent");
-        idb.onerror = function(event) {
-            reject("Error in opening IndexedDB!");
-        };
-        idb.onupgradeneeded = function(event) {
-               var objectStore = event.target.result.createObjectStore("torrents", { keyPath: "id", autoIncrement:true });
-               objectStore.createIndex("filename", "filename", { unique: false });
-               objectStore.createIndex("type", "type", { unique: false });
-               objectStore.createIndex("size", "size", { unique: false });
-               objectStore.createIndex("description", "description", { unique: false });
-               objectStore.createIndex("tags", "tags", { unique: false });
-               objectStore.createIndex("chunks", "chunks", { unique: false });
-               objectStore.createIndex("startTx", "startTx", { unique: false });
-               objectStore.createIndex("uploader", "uploader", { unique: false });
-               var objectStore2 = event.target.result.createObjectStore("lastTx");
-        };
-          idb.onsuccess = function(event) {
-               var db = event.target.result;
-               var lastTx = db.transaction('lastTx', "readwrite").objectStore('lastTx');
-               var addr = adminID;
-               var lastTxReq = lastTx.get(addr);
-                 lastTxReq.onsuccess = function(event){
-                    var lasttx = event.target.result
-                    if(lasttx === undefined){
-                        lasttx = 0;
-                    }
-                    var response = ajax("GET",`api/addrs/${addr}/txs`);
-                    var nRequired = JSON.parse(response).totalItems - lasttx;
-                    console.log(nRequired);
-                    while(true && nRequired){
-                      var response = ajax("GET",`api/addrs/${addr}/txs?from=0&to=${nRequired}`);
-                      response = JSON.parse(response);
-                      if (nRequired + lasttx != response.totalItems ){
-                        nRequired = response.totalItems - lasttx;
-                        continue;
-                      }
-                      response.items.reverse().forEach(function(tx){
-                        try {
-                          //console.log(tx.floData)
-                          torrentdata = JSON.parse(tx.floData).FLO_Torrent;
-                          if(torrentdata === undefined)
-                            return;
-                          //console.log(torrentdata);
-                          data = {filename : torrentdata.filename, type : torrentdata.type,uploader:tx.vin[0].addr, description:torrentdata.description, size:torrentdata.size,tags:torrentdata.tags,chunks:torrentdata.chunks,startTx:torrentdata.startTx};
-                          storedata(data).then(function (response) {
-                          }).catch(function (error) {
-                              //console.log(error.message);
-                          });
-                        } catch (e) {
-                          //console.log(e)
-                        }
-                      });
-                      var idb2 = indexedDB.open("FLO_Torrent");
-                      idb2.onerror = function(event) {
-                          console.log("Error in opening IndexedDB!");
-                      };
-                      idb2.onsuccess = function(event) {
-                          var dbt = event.target.result;
-                          var obs = dbt.transaction('lastTx', "readwrite").objectStore('lastTx');
-                          obs.put(response.totalItems,addr);
-                          dbt.close();
-                       };
-                        break;
-                      }
-                      resolve('retrived data from API');
-                  };
-                  db.close();
-                };
-             });
-          }
-    function getDataFromIDB(){
-    return new Promise(
-    function(resolve, reject) {
-        var idb = indexedDB.open("FLO_Torrent");
-         idb.onerror = function(event) {
-             reject("Error in opening IndexedDB!");
-         };
-         idb.onsuccess = function(event) {
-           var db = event.target.result;
-           var obs = db.transaction('torrents', "readwrite").objectStore('torrents');
-           torrentdetails = [];
-           var getReq = obs.getAll();
-           getReq.onsuccess = function(event) {
-             resolve(event.target.result);
-           };
-           db.close();
-         };
-       }
-     );
-    }
-
-    }
-  userDataStartUp();
-
-
-
-//This function will be called by framework for you
-  function userDataNeedingNoRePaint(){
-
-
- }
-</script>
-
-<script>
-function ajax(method, uri){
-  var request = new XMLHttpRequest();
-  var url = `${server}/${uri}`
-  console.log(url)
-  var result;
-  request.open(method,url , false);
-  request.onload = function () {
-    if (request.readyState == 4 && request.status == 200)
-      result = this.response;
-    else {
-      console.log('error');
-      result = false;
-    }
-  };
-  request.send();
-  //console.log(result);
-  return result;
-}
-function getTorrentName(filename){
-  var n = filename.lastIndexOf(".torrent");
-  return filename.slice(0, n);
-}
-async function downloadTorrent(filename,txid,totalChunks){
-  var downloadBar = document.getElementById('downloadBar');
-  var progressBar = document.createElement("div");
-  progressBar.setAttribute("class","progress-circle p0");
-  progressBar.innerHTML = `<div class="left-half-clipper">
-                              <div class="first50-bar"></div>
-                              <div class="value-bar"></div>
-                           </div>`
-  var progressValue = document.createElement("span");
-  progressValue.innerHTML = `0%`;
-  progressBar.appendChild(progressValue);
-  downloadBar.appendChild(progressBar);
-  console.log(txid);
-  chunks = [];
-  var percent = 0;
-  try{
-    while(txid){
-        var response = ajax("GET",`/api/tx/${txid}`);
-        var floData = JSON.parse(JSON.parse(response).floData)
-        chunks.push(floData.data);
-        txid = floData.next;
-        percent = Math.round((chunks.length/totalChunks)*100)
-        progressValue.innerHTML = `${percent}%`;
-        if(percent < 50)
-          progressBar.setAttribute("class",`progress-circle p${percent}`);
-        else
-          progressBar.setAttribute("class",`progress-circle over50 p${percent}`);
-    }
-    var filedata = chunks.join("");
-    console.log(filedata);
-    download(filename,filedata);
-  }catch(e){
-    console.log(e);
   }
-  downloadBar.removeChild(progressBar);
-}
-function download(filename, data) {
-  var element = document.createElement('a');
-  element.setAttribute('href', 'data:application/octet-stream;charset=utf-8;base64,' + data);
-  element.setAttribute('download', filename);
-  element.style.display = 'none';
-  document.body.appendChild(element);
-  element.click();
-  document.body.removeChild(element);
-}
-</script>
 
+</script>
 
 <script id="SystemConfiguration">
 
    var screenAlpha ={};
+   screenAlpha.codeOrderDivList = [];
+   screenAlpha.userDivSpan = {};
   //Main configuration for number of boxes in grid. You only have to define minimum width, minimum height and total number of boxes. Positioning will be taken care of by the code
-  screenAlpha.boxMinimumWidth = 300;
+  screenAlpha.boxMinimumWidth = 600;
   screenAlpha.boxMinimumHeight = 300;
-  screenAlpha.totalBoxes = 0;
+  screenAlpha.totalBoxes = 50;
 
   //Turn them false when layout job is done
   screenAlpha.lastUserDivShouldCoverWholeLine  = false;
   screenAlpha.showBaseDivNumber = false  ;
-  screenAlpha.showBaseDivBackground = true;
+  screenAlpha.showBaseDivBackground = false;
   screenAlpha.showLastOverLayDivBackground = true;
 
   //Styling Information for base Div grid, and overlay Div grid
   screenAlpha.baseDivGridBackground = "white";
-  screenAlpha.OverlayDivGridBackground =["pink","#DBB1CD","#E8B5CE","pink","#F0EAD6",]
+  screenAlpha.OverlayDivGridBackground =["#CE5B78","#FF6F61","#E8B5CE","#BE9EC9","#6B5B95","#BC70A4","#CE3175","#AD5D5D"];
   screenAlpha.OverlayDivOpacity ="0.8";
-
 
 
 </script>
@@ -568,6 +631,7 @@ function download(filename, data) {
   3. Keep all the screen specific display in <script id="script_UserPresentationData"> zone
   4. All user presentation code should strictly be inside the function rePaintUserData()
 */
+
   function rePaintUserData(){
   //createUserDiv(baseDivNumber,howManyAdjacentDivs,heightMultiplier)
  /*
@@ -579,24 +643,87 @@ function download(filename, data) {
 
    // You get last overly div ID for free if screenAlpha.lastUserDivShouldCoverWholeLine  = true;
     if(screenAlpha.lastBaseDivNumber) document.getElementById("div_overlay_"+screenAlpha.lastBaseDivNumber).innerHTML="Last overlay DIV takes the whole row if configured that way";
+
+ // You will get the height you request .. but not the width .. width will be clipped to available space
+
  */
+    screenAlpha.codeOrderDivList = [];
 
-    var x0 = createUserDiv(0);
-   // x0.style.backgroundColor = "#222";
-    x0.innerHTML = `<h1>FLO Torrents <i class="fab fa-bitcoin"></i></h1>`;
+    var x0 = createFlexUserDiv(0);
+    // x0.style.backgroundColor = "#222";
+    x0.innerHTML = `
+      <div>
+        <svg width="100" height="130" viewBox = "0 0 100 130">
+          <g id="layer1" transform="translate(470,140)">
+            <path transform="translate(-350,-850)" id="path5165"
+               d="M -166.99971,804.55875 V 484.41291 H 153.14614 473.29202 V 804.55875 1124.7046 H 153.14614 -166.99971 Z m 639.93893,0 V 484.76569 H 153.14614 -166.64693 v 319.79306 319.79305 h 319.79307 319.79308 z m -168.4514,189.02282 m 10.5778,-228.53393 m -37.9181,8.56292  z m -332.434261,52.76162 c -0.12935,-0.12935 -0.23519,-1.28253 -0.23519,-2.56262 0,-6.67058 -5.44905,-13.20481 -16.4463,-19.72158 -1.96345,-1.1635 -4.3447,-2.4643 -5.29166,-2.89067 -4.957,-2.23185 -12.62447,-6.25072 -15.28525,-8.0117 -12.030489,-7.96211 -12.658389,-16.35177 -1.98645,-26.54198 1.73209,-1.65391 4.64828,-4.43585 6.48042,-6.1821 6.95926,-6.63302 10.68624,-12.58985 11.25673,-17.99167 l 0.22355,-2.11667 -1.9948,2.35011 c -3.79112,4.46638 -7.61404,7.1861 -11.52814,8.20141 -2.21719,0.57513 -2.64903,0.29106 -3.26536,-2.14806 l -0.46168,-1.82711 -2.28178,1.4509 c -2.41829,1.5377 -6.723749,3.18611 -7.521859,2.87985 -0.26212,-0.10059 -0.6859,-1.05542 -0.94173,-2.12185 -0.25584,-1.06643 -0.57694,-2.00805 -0.71357,-2.09249 -0.13663,-0.0844 -0.87878,0.3031 -1.64922,0.8612 -1.94063,1.40579 -3.46509,2.15893 -5.81469,2.8727 -2.51574,0.76424 -2.8946,0.5237 -3.62066,-2.29869 -0.88387,-3.43588 -0.92652,-3.36547 2.03806,-3.36547 6.83587,0 13.43345,-5.38116 19.896059,-16.22778 2.20502,-3.70081 3.98333,-7.22308 3.98333,-7.88969 0,-1.65984 2.6604,-0.47757 8.74073,3.88434 0.44177,0.31692 0.84002,0.51434 0.885,0.4387 0.62242,-1.04661 2.02564,-4.11571 2.02146,-4.4213 -0.0103,-0.75676 1.09171,-0.826 2.39614,-0.15054 0.71638,0.37096 2.5618,1.54517 4.10094,2.60937 l 2.79843,1.9349 0.97993,-1.81886 c 0.53896,-1.00037 0.98623,-2.08598 0.99393,-2.41245 0.0309,-1.3126 1.35752,-1.06195 4.32379,0.81695 8.04593,5.09648 12.84596,10.33008 15.13027,16.49691 0.65604,1.77111 0.54891,7.26086 -0.18316,9.38529 -1.79642,5.21312 -4.92116,9.58274 -11.10003,15.52222 -10.2817,9.88334 -11.67023,11.50598 -12.92312,15.10198 -0.68891,1.97729 -0.66829,5.81002 0.0404,7.52091 0.62466,1.50789 2.49336,3.99328 4.16986,5.54596 2.19595,2.03378 6.9095,4.82907 13.96149,8.27964 17.53725,8.58104 24.94403,14.81547 27.39109,23.05562 0.506,1.70388 0.50176,1.87158 -0.0577,2.28064 -0.71748,0.52463 -5.11519,1.57632 -5.52706,1.32176 -0.1578,-0.0975 -0.28691,-1.24175 -0.28691,-2.54272 0,-5.44225 -3.46174,-10.63587 -10.63355,-15.95345 -4.28094,-3.17412 -6.86259,-4.60768 -19.35256,-10.74621 -8.02659,-3.94489 -13.56038,-8.39151 -15.44245,-12.40863 -0.79591,-1.6988 -0.96172,-2.53931 -0.96172,-4.87494 0,-2.42145 0.15442,-3.14785 1.08741,-5.11528 1.21505,-2.56222 3.52772,-5.46919 6.89222,-8.66337 9.99629,-9.49026 11.81397,-11.48021 14.18898,-15.53373 2.29842,-3.92278 2.87861,-5.90728 2.87861,-9.84596 0,-3.92937 -0.49788,-5.6762 -2.54551,-8.93109 -1.8328,-2.91338 -8.45442,-9.23697 -9.67231,-9.23697 -0.43533,0 -2.1296,3.4982 -1.88553,3.89311 0.11519,0.18638 1.08106,1.16322 2.14638,2.17076 4.62673,4.37576 6.94442,9.15024 6.92646,14.26857 -0.0223,6.34079 -3.45437,12.37338 -11.41304,20.0606 -9.7573,9.4245 -11.14838,10.9574 -12.50702,13.78212 -2.47712,5.15014 -1.60256,9.72788 2.65929,13.9197 2.6136,2.57065 6.13507,4.85438 11.78566,7.64316 11.49487,5.67317 12.94902,6.46058 17.33578,9.38711 7.7164,5.14782 12.40171,10.85444 13.10107,15.95683 l 0.20905,1.52525 -1.54375,0.40093 c -0.84906,0.22051 -2.08448,0.54356 -2.74536,0.71789 -0.66089,0.17434 -1.31163,0.24898 -1.44609,0.16588 -0.13446,-0.0831 -0.3448,-1.4521 -0.46742,-3.04221 -0.26667,-3.45806 -1.40409,-6.14134 -3.94386,-9.30386 -3.96382,-4.93576 -9.19258,-8.50743 -21.29726,-14.54777 -10.55708,-5.26806 -14.28068,-7.62481 -17.44215,-11.0395 -3.01368,-3.25504 -3.88596,-5.42067 -3.69007,-9.16134 0.23445,-4.47716 2.12333,-7.63031 7.8192,-13.05278 8.17821,-7.78566 11.42793,-11.23684 13.39849,-14.2291 1.10432,-1.67689 2.09734,-3.32853 2.20672,-3.67032 0.10937,-0.34177 0.33606,-0.93891 0.50374,-1.32697 0.7565,-1.75067 1.39503,-4.69838 1.39503,-6.44002 0,-2.55009 -1.43409,-6.695 -3.23286,-9.3438 l -1.45314,-2.13983 -0.52062,1.02432 c -0.28634,0.56338 -0.96031,1.75163 -1.4977,2.64056 l -0.97709,1.61622 1.06017,2.44072 c 0.94532,2.17632 1.06006,2.82288 1.05923,5.9685 -7e-4,3.32326 -0.081,3.71278 -1.3819,6.71897 -2.5028,5.78351 -6.08366,10.11439 -15.51794,18.76826 -5.95936,5.46639 -8.3221,9.472 -8.29561,14.06375 0.0168,2.90596 1.30197,5.60636 3.9078,8.21083 2.8565,2.85503 6.15357,4.89263 14.68085,9.0728 7.6367,3.7436 13.15045,6.8861 16.95694,9.66442 3.2897,2.40112 7.59877,6.96715 8.90278,9.43366 1.27429,2.41032 2.20493,5.48363 1.83953,6.07484 -0.12755,0.2064 -1.3702,0.6907 -2.76143,1.07623 -2.89845,0.8032 -2.70184,0.77276 -3.00882,0.46578 z m -41.33331,-82.80985 c 4.23101,-2.09108 7.92503,-5.83754 12.53542,-12.7134 l 1.87844,-2.80148 -2.0919,-1.91409 c -2.52447,-2.30991 -4.72208,-3.76207 -5.08615,-3.36088 -0.14704,0.16203 -1.02759,1.80273 -1.95679,3.64599 -3.56684,7.07558 -6.30491,11.4598 -9.998129,16.00908 l -2.2568,2.77991 2.13626,-0.15453 c 1.543029,-0.11161 2.886999,-0.52555 4.839649,-1.4906 z m 10.43136,0.54182 c 2.0284,-0.77999 7.31893,-4.77496 8.55423,-6.45945 l 0.69272,-0.9446 -1.4792,-2.986 c -1.32469,-2.67412 -2.64562,-4.48681 -2.97976,-4.08907 -0.0669,0.0797 -0.72265,1.25608 -1.45719,2.61427 -1.84339,3.40851 -4.45047,7.27559 -6.98968,10.36783 l -2.14053,2.60672 1.91711,-0.17701 c 1.05442,-0.0974 2.80145,-0.51707 3.8823,-0.93269 z m 13.86858,-13.83041 c 0.70178,-1.17807 1.27596,-2.21029 1.27596,-2.29383 0,-0.26334 -2.57037,-2.6013 -4.51637,-4.108 -2.11433,-1.63702 -2.27705,-1.58756 -3.40635,1.0354 l -0.64041,1.48745 2.78226,2.98903 c 1.53024,1.64397 2.88277,2.99868 3.00561,3.01047 0.12284,0.0118 0.79753,-0.94244 1.4993,-2.12052 z" style="fill:#000000;stroke-width:0.35277778" />
+          </g>
+        </svg>
+      </div>
+      <div>
+        <h1>FLO Torrents </h1>
+        <h3>Created by Ranchimall Blockchain contract</h3>
+        <input type="search" id="search" value="${searchKey}" placeholder="Search torrent"/>
+        <button class="btn" onclick="searchTorrents()">
+          <svg width="20px" height="20px" viewBox="0 0 500 500">
+            <g>
+              <g>
+                <path d="M471.882,407.567L360.567,296.243c-16.586,25.795-38.536,47.734-64.331,64.321l111.324,111.324
+                  c17.772,17.768,46.587,17.768,64.321,0C489.654,454.149,489.654,425.334,471.882,407.567z"/>
+                <path d="M363.909,181.955C363.909,81.473,282.44,0,181.956,0C81.474,0,0.001,81.473,0.001,181.955s81.473,181.951,181.955,181.951
+                  C282.44,363.906,363.909,282.437,363.909,181.955z M181.956,318.416c-75.252,0-136.465-61.208-136.465-136.46
+                  c0-75.252,61.213-136.465,136.465-136.465c75.25,0,136.468,61.213,136.468,136.465
+                  C318.424,257.208,257.206,318.416,181.956,318.416z"/>
+                <path d="M75.817,181.955h30.322c0-41.803,34.014-75.814,75.816-75.814V75.816C123.438,75.816,75.817,123.437,75.817,181.955z"/>
+              </g>
+            </g>
+          </svg>
+        </button>
+        <button class="btn" onclick="clearSearch()">
+          <svg width="20px" height="20px" viewBox="0 0 500 500">
+            <g>
+              <g>
+                <path d="M405.6,69.6C360.7,24.7,301.1,0,237.6,0s-123.1,24.7-168,69.6S0,174.1,0,237.6s24.7,123.1,69.6,168s104.5,69.6,168,69.6
+                  s123.1-24.7,168-69.6s69.6-104.5,69.6-168S450.5,114.5,405.6,69.6z M386.5,386.5c-39.8,39.8-92.7,61.7-148.9,61.7
+                  s-109.1-21.9-148.9-61.7c-82.1-82.1-82.1-215.7,0-297.8C128.5,48.9,181.4,27,237.6,27s109.1,21.9,148.9,61.7
+                  C468.6,170.8,468.6,304.4,386.5,386.5z"/>
+                <path d="M342.3,132.9c-5.3-5.3-13.8-5.3-19.1,0l-85.6,85.6L152,132.9c-5.3-5.3-13.8-5.3-19.1,0c-5.3,5.3-5.3,13.8,0,19.1
+                  l85.6,85.6l-85.6,85.6c-5.3,5.3-5.3,13.8,0,19.1c2.6,2.6,6.1,4,9.5,4s6.9-1.3,9.5-4l85.6-85.6l85.6,85.6c2.6,2.6,6.1,4,9.5,4
+                  c3.5,0,6.9-1.3,9.5-4c5.3-5.3,5.3-13.8,0-19.1l-85.4-85.6l85.6-85.6C347.6,146.7,347.6,138.2,342.3,132.9z"/>
+              </g>
+            </g>
+          </svg>
+        </button>
+      </div>`;
 
-    for(var i=0;i<torrents.length;i++){
-      var grid =  createUserDiv(i+1);
-      grid.setAttribute("class","torrent-grid");
-      grid.innerHTML = `<a href="javascript:downloadTorrent('${torrents[i].filename}','${torrents[i].startTx}',${torrents[i].chunks})"><div class="torrent-name">${getTorrentName(torrents[i].filename)}</div></a>
-                        <div class="torrent-uploader">-by- ${torrents[i].uploader}</div>
-                        <div class="torrent-type">[${torrents[i].type}]</div>
-                        <div class="torrent-description">${torrents[i].description}</div>
-                        <div class="torrent-tags">Tags : ${torrents[i].tags}</div>`
-    }
+     for(var i=0;i<searchResults.length;i++){
+       var j = searchResults[i];
+       var grid =  createFlexUserDiv(i+1);
+       grid.setAttribute("class","flip-card");
+       grid.innerHTML = `<div class="flip-card-inner">
+                            <div class="flip-card-front">
+                              <div class="front-torrent-name">${torrents[j].name}</div>
+                              <div class="torrent-type">[${torrents[j].type}]</div>
+                              <div class="torrent-uploader">-by- ${torrents[j].uploader}</div>
+                              <div class="torrent-tags">Tags : ${torrents[j].tags}</div>
+                            </div>
+                            <div class="flip-card-back">
+                              <div class="torrent-name">${torrents[j].name}</div>
+                              <button class="btn" onclick="downloadTorrent('${torrents[j].filename}','${torrents[j].startTx}',${torrents[j].chunks})">
+                                <svg width="25" height="25" viewBox="0 0 500 500" >
+                                  <g><polygon points="283.52,181.333 245.12,219.733 234.667,244.693 234.667,32 192,32 192,244.267 180.693,218.88 143.147,181.12	115.84,209.92 213.333,307.413 311.04,209.707 		"/></g>
+                                  <g><polygon points="384,266.667 384,352 42.667,352 42.667,266.667 0,266.667 0,394.667 426.667,394.667 426.667,266.667 		"/></g>
+                              </button>
+                              <div class="torrent-description">${torrents[j].description}</div>
+                              </div>
+                             </div>
+                          </div>`
+     }
 
 //On repainting .. it creates that number again .. and updates getLastUserDivNumber ..
-
+//screenAlpha.codeOrderDivList = [];
+deleteBaseDiv(nextAvailableUserDivNumber());
+anotherDivCleanUp();
 } // Main function end
 </script>
 
@@ -612,8 +739,9 @@ function download(filename, data) {
   screenAlpha.lastBaseDivNumber = screenAlpha.totalBoxes -1;
   screenAlpha.lastUserDivNumber = 0;
 
-//One time tasks not needing repainting
 
+//One time tasks not needing repainting
+  oneTimeTasks();
 
   function oneTimeTasks(){
     createAllBaseDivs(screenAlpha.totalBoxes);
@@ -667,6 +795,7 @@ function download(filename, data) {
     var boxEffectiveWidth = boxMinimumWidth + spillOverPerBox;
     boxDetails.numberOfBoxesInRow = numberOfBoxesInRow;
     boxDetails.boxEffectiveWidth = boxEffectiveWidth;
+    screenAlpha.previousNumberOfBoxesInRow = screenAlpha.numberOfBoxesInRow;
     screenAlpha.numberOfBoxesInRow = numberOfBoxesInRow;
     screenAlpha.boxEffectiveWidth = boxEffectiveWidth;
     return boxDetails;
@@ -686,6 +815,7 @@ function download(filename, data) {
     for (index = 0; index < screenAlpha.baseDivIdList.length; index++) {
     topAndLeftPositionOfBaseDivs(index);
     var divId = "div_"+index;
+    document.getElementById(divId).style.position = "absolute";
     document.getElementById(divId).style.top=screenAlpha["div_"+index+"_topPosition"]+"px";
     document.getElementById(divId).style.left=screenAlpha["div_"+index+"_leftPosition"]+"px";
     document.getElementById(divId).style.width=screenAlpha.boxDetails.boxEffectiveWidth+"px";
@@ -695,10 +825,20 @@ function download(filename, data) {
     }
 
    function createUserDiv(baseDivNumber,howManyAdjacentDivs=1,heightMultiplier=1){
+
+      //Adjusting baseDivNumber for forward overlaps
+      baseDivNumber = forwardOverlapCheck(baseDivNumber,howManyAdjacentDivs,heightMultiplier);
+
+      screenAlpha.codeOrderDivList.push(baseDivNumber);
+      screenAlpha["div_overlay_"+baseDivNumber+"_howManyAdjacentDivs"]=howManyAdjacentDivs;
+      screenAlpha["div_overlay_"+baseDivNumber+"_heightMultiplier"]=heightMultiplier;
+
+
      var topPosition = screenAlpha["div_"+baseDivNumber+"_topPosition"];
      if (howManyAdjacentDivs == "full_line") {
        var divWidth = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
        var leftPosition = "0";
+
        }
      else
      {
@@ -709,9 +849,22 @@ function download(filename, data) {
        var divWidth3 = divWidth1 - screenAlpha["div_"+baseDivNumber+"_leftPosition"];
        var divWidthTemp = (divWidth1 > divWidth2) ? divWidth2 : divWidth1;
        var divWidth = (divWidthTemp > divWidth3) ? divWidth3 : divWidthTemp;
+
      }
      var divHeight = screenAlpha.boxMinimumHeight*heightMultiplier;
      var divId="div_overlay_"+baseDivNumber;
+
+     screenAlpha[divId+"_lineDivCount"]=divWidth/screenAlpha.boxEffectiveWidth;
+      var i;var j;
+      var lineDivCount = screenAlpha[divId+"_lineDivCount"];
+     screenAlpha.userDivSpan[baseDivNumber]=[];
+
+      for(j=0;j<heightMultiplier;j++){
+              for (i = 0; i < lineDivCount; i++) {
+              screenAlpha.userDivSpan[baseDivNumber].push(screenAlpha.numberOfBoxesInRow*j+baseDivNumber+i);
+            }
+      }
+
     if (!document.getElementById(divId)){
      var overlayDiv = document.createElement("div");
      overlayDiv.id=divId;
@@ -719,7 +872,7 @@ function download(filename, data) {
      document.getElementById("rootDiv").appendChild(overlayDiv)
     }
      var overlayDiv = document.getElementById(divId);
-     overlayDiv.style.top = topPosition+"px";screenAlpha[divId+"_top"]=topPosition;
+     overlayDiv.style.position = "absolute";overlayDiv.style.top = topPosition+"px";screenAlpha[divId+"_top"]=topPosition;
      if(howManyAdjacentDivs == "full_line") {screenAlpha[divId+"_left"]=0 } else {overlayDiv.style.left=originalLeftPosition+"px";screenAlpha[divId+"_left"]=originalLeftPosition};
      overlayDiv.style.width=divWidth+"px";screenAlpha[divId+"_width"]=divWidth;
      overlayDiv.style.height=divHeight+"px";screenAlpha[divId+"_height"]=divHeight;
@@ -733,9 +886,99 @@ function download(filename, data) {
       screenAlpha.userDivIdList.push(divId);
       }
 
+     if (!document.getElementById("flexcontainer"+baseDivNumber)){
+     var flexContainerDiv = document.createElement("div");
+     flexContainerDiv.id = "flexcontainer"+baseDivNumber;
+     flexContainerDiv.class = "flexcontainer";
+     flexContainerDiv.style.height = screenAlpha.boxMinimumHeight;
+     document.getElementById("div_overlay_"+baseDivNumber).innerHTML = "";
+     document.getElementById("div_overlay_"+baseDivNumber).appendChild(flexContainerDiv);
+    }
 
      return document.getElementById("div_overlay_"+baseDivNumber);
    }
+
+      function createFlexUserDiv(baseDivNumber,howManyAdjacentDivs=1,heightMultiplier=1){
+
+      //Adjusting baseDivNumber for forward overlaps
+      baseDivNumber = forwardOverlapCheck(baseDivNumber,howManyAdjacentDivs,heightMultiplier);
+
+      screenAlpha.codeOrderDivList.push(baseDivNumber);
+      screenAlpha["div_overlay_"+baseDivNumber+"_howManyAdjacentDivs"]=howManyAdjacentDivs;
+      screenAlpha["div_overlay_"+baseDivNumber+"_heightMultiplier"]=heightMultiplier;
+
+
+     var topPosition = screenAlpha["div_"+baseDivNumber+"_topPosition"];
+     if (howManyAdjacentDivs == "full_line") {
+       var divWidth = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
+       var leftPosition = "0";
+
+       }
+     else
+     {
+       var originalLeftPosition = screenAlpha["div_"+baseDivNumber+"_leftPosition"];
+       //Obtain the lowest width of 3 possibilities for overlay
+       var divWidth1 = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
+       var divWidth2 = howManyAdjacentDivs*screenAlpha.boxEffectiveWidth;
+       var divWidth3 = divWidth1 - screenAlpha["div_"+baseDivNumber+"_leftPosition"];
+       var divWidthTemp = (divWidth1 > divWidth2) ? divWidth2 : divWidth1;
+       var divWidth = (divWidthTemp > divWidth3) ? divWidth3 : divWidthTemp;
+
+     }
+     var divHeight = screenAlpha.boxMinimumHeight*heightMultiplier;
+     var divId="div_overlay_"+baseDivNumber;
+
+     screenAlpha[divId+"_lineDivCount"]=divWidth/screenAlpha.boxEffectiveWidth;
+      var i;var j;
+      var lineDivCount = screenAlpha[divId+"_lineDivCount"];
+     screenAlpha.userDivSpan[baseDivNumber]=[];
+
+      for(j=0;j<heightMultiplier;j++){
+              for (i = 0; i < lineDivCount; i++) {
+              screenAlpha.userDivSpan[baseDivNumber].push(screenAlpha.numberOfBoxesInRow*j+baseDivNumber+i);
+            }
+      }
+
+    if (!document.getElementById(divId)){
+     var overlayDiv = document.createElement("div");
+     overlayDiv.id=divId;
+     overlayDiv.style.position = "absolute";
+     document.getElementById("rootDiv").appendChild(overlayDiv)
+    }
+     var overlayDiv = document.getElementById(divId);
+     overlayDiv.style.position = "absolute";overlayDiv.style.top = topPosition+"px";screenAlpha[divId+"_top"]=topPosition;
+     if(howManyAdjacentDivs == "full_line") {screenAlpha[divId+"_left"]=0 } else
+
+      {
+        overlayDiv.style.left=originalLeftPosition+"px";
+        screenAlpha[divId+"_left"]=originalLeftPosition
+      };
+
+     overlayDiv.style.width=divWidth+"px";screenAlpha[divId+"_width"]=divWidth;
+     overlayDiv.style.height=divHeight+"px";screenAlpha[divId+"_height"]=divHeight;
+     if(screenAlpha.showLastOverLayDivBackground) {
+      overlayDiv.style.backgroundColor=screenAlpha.OverlayDivGridBackground[baseDivNumber%screenAlpha.OverlayDivGridBackground.length];
+      overlayDiv.style.opacity=screenAlpha.OverlayDivOpacity;
+    /*  if(screenAlpha.showBaseDivNumber==100) {
+        overlayDiv.innerHTML="<span style='position:relative;left:20px'>Overlay Div Number "+baseDivNumber+"</span>";} This feature is not available in flexContainerDiv */
+     }
+     if(!screenAlpha.userDivIdList.includes(divId)) {
+      screenAlpha.userDivIdList.push(divId);
+      }
+
+     if (!document.getElementById("flexcontainer"+baseDivNumber)){
+     var flexContainerDiv = document.createElement("div");
+     flexContainerDiv.id = "flexcontainer"+baseDivNumber;
+     flexContainerDiv.classList.add("flexcontainer");
+     flexContainerDiv.style.height = screenAlpha.boxMinimumHeight;
+     document.getElementById("div_overlay_"+baseDivNumber).innerHTML = "";
+     document.getElementById("div_overlay_"+baseDivNumber).appendChild(flexContainerDiv);
+    }
+
+     return document.getElementById("flexcontainer"+baseDivNumber);
+   }
+
+
 
    function getUserDivDimensions(userDivNumber){
      var x = {};
@@ -752,12 +995,15 @@ function download(filename, data) {
     createUserDiv(lastBaseDivNumber,"full_line",1)
    }
 
+   function removeLargest(arr) {
+     var min = Math.max.apply(null, arr);
+     return arr.filter((e) => {return e != min});
+    }
+
+
    function getLastUserDivNumber(){
 
-      function removeLargest(arr) {
-      var min = Math.max.apply(null, arr);
-      return arr.filter((e) => {return e != min});
-      }
+
 
       var extractNumbers = screenAlpha.userDivIdList.map(x => {return parseInt(x.replace("div_overlay_",""))});
       if (screenAlpha.lastUserDivShouldCoverWholeLine) extractNumbers = removeLargest(extractNumbers);
@@ -765,8 +1011,216 @@ function download(filename, data) {
 
     // This condition is screwing me
     //  if (highestValue >= screenAlpha.lastUserDivNumber) {return "All base divs are taken" } else {return highestValue+1};
-     return highestValue+1
+     return highestValue;
    }
+
+
+   function deleteUserDiv(divNumber){
+    //check the code .. find original divs .. delete the other userDivs
+
+if(typeof(divNumber) != 'undefined' && divNumber != null){
+
+    delete screenAlpha["div_overlay_"+divNumber+"_height"]
+    delete screenAlpha["div_overlay_"+divNumber+"_heightMultiplier"]
+    delete screenAlpha["div_overlay_"+divNumber+"_howManyAdjacentDivs"]
+    delete screenAlpha["div_overlay_"+divNumber+"_left"]
+    delete screenAlpha["div_overlay_"+divNumber+"_top"]
+    delete screenAlpha["div_overlay_"+divNumber+"_width"]
+
+    delete screenAlpha.userDivSpan[divNumber];
+
+    //remove div_overlay_divNumber from userDivIdList
+   for( var i = 0; i < screenAlpha.userDivIdList.length; i++){
+   if ( screenAlpha.userDivIdList[i] == "div_overlay_"+divNumber) {
+     screenAlpha.userDivIdList.splice(i, 1);
+   }
+  }
+
+  var element = document.getElementById("div_overlay_"+divNumber);
+   if(typeof(element) != 'undefined' && element != null){
+        element.style="";
+        element.innerHTML="";}
+
+  }
+}
+
+
+   function deleteBaseDiv(divNumber){
+
+  //alert("Start deleting from "+divNumber);
+  var startDiv = divNumber;
+  while (divNumber < screenAlpha.totalBoxes ) {
+
+  var element = document.getElementById("div_"+divNumber);
+   if(typeof(element) != 'undefined' && element != null){
+        element.style="";
+        element.innerHTML="";
+        //console.log("Deleted Base Div number "+divNumber);
+      }
+  divNumber++;
+
+  }
+
+  //console.log("divNumber is "+startDiv);
+  var divSelected = document.getElementById("rootDiv");
+  divSelected.style.height = Math.ceil(startDiv/screenAlpha.boxDetails.numberOfBoxesInRow)*screenAlpha.boxMinimumHeight;
+
+ }
+
+
+function myFunction(item,index){
+      if (!(screenAlpha.codeOrderDivList.includes(item))) {deleteUserDiv(item)};
+    }
+
+function anotherDivCleanUp(){
+    var extractNumbers = screenAlpha.userDivIdList.map(x => {return parseInt(x.replace("div_overlay_",""))});
+    if (screenAlpha.lastUserDivShouldCoverWholeLine) extractNumbers = removeLargest(extractNumbers);
+    //Pick an element from extractNumbers. Check if it is included in screenAlpha.codeOrderDivList. If not, delete it
+    extractNumbers.forEach(myFunction);
+
+  }
+
+function nextAvailableUserDivNumber(){
+
+
+     var nextAvailableDivNumber;
+     var boundaryLimit;
+     var udiv1 = screenAlpha.codeOrderDivList[screenAlpha.codeOrderDivList.length-1]; //last element upto now
+
+     var n1 = screenAlpha.boxDetails.numberOfBoxesInRow;
+     var h1 = screenAlpha["div_overlay_"+udiv1+"_howManyAdjacentDivs"]; if (h1=="full_line") {h1 = n1};
+     var heightMultiplier = screenAlpha["div_overlay_"+udiv1+"_heightMultiplier"];
+
+//Full Line Cases .. if the previous element is full line .. then take the next line. Here we want if the current element is full line
+     if ((h1 == "full_line") || ((udiv1 % n1) + h1 > n1-1) ){
+      var current_k = Math.floor(udiv1/n1);
+      var new_k = current_k + heightMultiplier;
+      nextAvailableDivNumber = new_k*n1;
+
+      //Check for overlap here. If there is a overlap jump to next free boundary number.
+      //First check for overlap .. if the the resultant number is not on boundary .. increment it by boundary steps till no overlap is found
+
+
+      }
+//Non full line cases
+    else
+    {
+    nextAvailableDivNumber = udiv1+h1;
+    }
+
+//global processing
+    //This rule is now deleting my previous legitimate div .. I need to fix this .. at least I know the problem
+    //I am down to this delete logic .. how to delete .. done
+    if (screenAlpha.previousDivNumber != nextAvailableDivNumber) {
+       // debugger;
+        if ((!screenAlpha.codeOrderDivList.includes(screenAlpha.previousDivNumber))){ deleteUserDiv(screenAlpha.previousDivNumber)};
+
+        //if (udiv1 != screenAlpha.previousDivNumber){ deleteUserDiv(screenAlpha.previousDivNumber)};
+
+       // deleteUserDiv(screenAlpha.previousDivNumber);
+    }
+
+  //Check if any of the previous guys have occupied a div. If yes, shift the div to the next vacant slot
+    nextAvailableDivNumber = adjustForOverlap(nextAvailableDivNumber);
+
+    screenAlpha.previousDivNumber = nextAvailableDivNumber;
+    return nextAvailableDivNumber;
+
+    }
+
+
+
+ function adjustForOverlap(divNumber) {
+
+      do
+      {
+      var overlap =0;
+      for (index = 0; index < screenAlpha.codeOrderDivList.length; index++) {
+        if(screenAlpha.userDivSpan[screenAlpha.codeOrderDivList[index]].includes(divNumber)){overlap=1 };
+        }
+
+        if(overlap == 1) {divNumber++;}
+        }
+    while (overlap !=0); //this condition has to be false to exit do while loop .. ie ovelap must be 0 .. until then keep on increasing nextAvailableDivNumber and check no overlap exists, If condition is true, repeat the loop.
+
+    return divNumber;
+
+
+ }
+
+ function forwardOverlapCheck (baseDivNumber,howManyAdjacentDivs,heightMultiplier){
+
+
+
+     if (howManyAdjacentDivs == "full_line") {
+       var divWidth = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
+
+
+       }
+     else
+     {
+
+       //Obtain the lowest width of 3 possibilities for overlay
+       var divWidth1 = screenAlpha.boxEffectiveWidth*screenAlpha.numberOfBoxesInRow;
+       var divWidth2 = howManyAdjacentDivs*screenAlpha.boxEffectiveWidth;
+       var divWidth3 = divWidth1 - screenAlpha["div_"+baseDivNumber+"_leftPosition"];
+       var divWidthTemp = (divWidth1 > divWidth2) ? divWidth2 : divWidth1;
+       var divWidth = (divWidthTemp > divWidth3) ? divWidth3 : divWidthTemp;
+
+     }
+     var divHeight = screenAlpha.boxMinimumHeight*heightMultiplier;
+
+     var i;var j;
+     var lineDivCount = divWidth/screenAlpha.boxEffectiveWidth;
+     screenAlpha.temp=[];
+
+      for(j=0;j<heightMultiplier;j++){
+              for (i = 0; i < lineDivCount; i++) {
+              screenAlpha.temp.push(screenAlpha.numberOfBoxesInRow*j+baseDivNumber+i);
+            }
+      }
+
+      var x = []; var y=[]; var index;
+      var j = screenAlpha.temp.length;
+
+
+      for (index = 0; index < j; index++) {
+      x.push(adjustForOverlap(screenAlpha.temp[index]));
+      x[index] = adjustForOverlap(screenAlpha.temp[index]);
+      if(x[index] != screenAlpha.temp[index]){y.push(x[index])}
+
+      }
+
+      //Inserting divNumber twice so that at least we have two numbers to compare in array
+      y.push(baseDivNumber);
+      y.push(baseDivNumber);
+
+
+    var largest = y.reduce(function(a, b) {
+    return Math.max(a, b);
+    });
+
+
+    var nextlargest;
+
+    //So right now I have the next available divNumber .. Now I will do full line test
+      if (howManyAdjacentDivs == "full_line") {
+            if ( largest%screenAlpha.numberOfBoxesInRow != 0 ) {
+                largest = largest - largest % screenAlpha.numberOfBoxesInRow;
+
+                do {
+                nextlargest = adjustForOverlap(largest);
+                if(nextlargest != largest ){largest = largest + screenAlpha.numberOfBoxesInRow;}
+                } while (nextlargest != largest)
+
+            }
+
+      }
+
+      screenAlpha.temp=[];
+      return largest;
+
+ }
 
 //End of positioning code
 </script>
