@@ -360,6 +360,7 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 			}
 			overlaytext.innerHTML = "Uploading Header..."
 			var header = JSON.stringify({FLO_Torrent:{name:name,filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
+			console.log(header);
 			if(header.length>=1048){
 				reject(`Header is too big! Reduce Headers and Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
 			}
