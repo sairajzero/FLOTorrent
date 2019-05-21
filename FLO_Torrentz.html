@@ -432,14 +432,19 @@ var searchKey = "";
                       nRequired = response.totalItems - lasttx;
                       continue;
                     }
+                    var errorTxCount = 0; //Count of txs that didnot go into any blocks
                     response.items.reverse().forEach(function(tx){
                       try {
                         //console.log(tx.floData)
-                        torrentdata = JSON.parse(tx.floData).FLO_Torrent;
+                        if(!tx.blockhash){ //ignore error txs that did not go into any blocks
+                          errorTxCount += 1;
+                          return;
+                        }
+                        var torrentdata = JSON.parse(tx.floData).FLO_Torrent;
                         if(torrentdata === undefined)
                           return;
                         //console.log(torrentdata);
-                        data = {name : torrentdata.name, filename : torrentdata.filename, type : torrentdata.type,uploader:tx.vin[0].addr, description:torrentdata.description, size:torrentdata.size,tags:torrentdata.tags,chunks:torrentdata.chunks,startTx:torrentdata.startTx};
+                        var data = {name : torrentdata.name, filename : torrentdata.filename, type : torrentdata.type,uploader:tx.vin[0].addr, description:torrentdata.description, size:torrentdata.size,tags:torrentdata.tags,chunks:torrentdata.chunks,startTx:torrentdata.startTx};
                         storedata(data).then(function (response) {
                         }).catch(function (error) {
                             //console.log(error.message);
@@ -455,12 +460,12 @@ var searchKey = "";
                     idb2.onsuccess = function(event) {
                         var dbt = event.target.result;
                         var obs = dbt.transaction('lastTx', "readwrite").objectStore('lastTx');
-                        obs.put(response.totalItems,addr);
+                        obs.put(response.totalItems - errorTxCount ,addr);
                         dbt.close();
                      };
-                      break;
-                    }
-                    resolve('retrived data from API');
+                     break;
+                  }
+                  resolve('retrived data from API');
                 };
                 db.close();
               };
