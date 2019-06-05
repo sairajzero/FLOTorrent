@@ -193,14 +193,14 @@
 </body>
 <script>
     const  cryptocoin = "FLO"
-    const mainnet = `https://flosight.duckdns.org/`;
-    const testnet = `https://testnet-flosight.duckdns.org/`;
+    const mainnet = `https://flosight.duckdns.org`;
+    const testnet = `https://testnet-flosight.duckdns.org`;
     const adminID = "FDG64XNjdsA4rAgfm4ABEs2RcTgqn8Jecv";
     if(cryptocoin == "FLO")
       var server = mainnet;
     else if(cryptocoin == "FLO_TEST")
       var server = testnet;
-  const sendAmt = 0.001
+  const sendAmt = 0.001;
   const fee = 0.0005;
 </script>
 
@@ -311,6 +311,11 @@ function processFile(){
 			document.getElementById("overlay").style.display = "none";
 			return;
 		}
+		var header = JSON.stringify({FLO_Torrent:{name:name,filename:file.name,type:type,size:file.size,description:description,tags:tags,chunks:chunks.length}});
+		if(header.length>900){
+			alert(`Header is too big! Reduce Header data and Try again!`);
+			return;
+		}
 		var res = confirm(`Your net balance is : ${balance}\nTotal fee for upload : ${totalFee}\nConfirm to upload into blockchain?`);
 		if (res){
 			sendDataToBlockchain(floID,name,file.name,type,description,tags,file.size,chunks,overlay,overlaytext).then(function(result){
@@ -330,10 +335,17 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 	return new Promise(
 		async function(resolve,reject){
 			var wif = prompt("Enter FLO private key (WIF) : ");
-			if(!verifyWIF(wif,floID))
+			if(!verifyWIF(wif,floID)){
 				reject("Invalid Private Key!");
+				return;
+			}
 			overlaytext.innerHTML = "Initializing Transactions..."
 			var utxos = splitUTXOs(floID,chunks.length,wif);
+			console.log(utxos);
+			if(!utxos.txid){
+				reject(`Initialization Failed! please Try again Later`);
+				return;
+			}
 			overlaytext.innerHTML = "Waiting for Confirmation..."
 			await sleep(30000);
 			overlay.innerHTML = "";
@@ -350,8 +362,10 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 			for (var i = chunks.length-1,j=1; i >= 0; i--,j++){
 				var data = JSON.stringify({data:chunks[i],next:lastTx});
 				var txid = sendTransaction(floID,floID,utxos,i,data,wif);
-				if(!txid)
+				if(!txid){
 					reject(`Error occured while uploading! Try again later!\nRemaining chunks : ${i+1}\nLast successful Txid : ${lastTx}`);
+					return;
+				}
 				else
 					lastTx = txid;
 				overlaytext.innerHTML = `Uploading chunks to blockchain...<br/>Uploaded ${j} of ${chunks.length}`;
@@ -361,9 +375,6 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 			overlaytext.innerHTML = "Uploading Header..."
 			var header = JSON.stringify({FLO_Torrent:{name:name,filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
 			console.log(header);
-			if(header.length>=1048){
-				reject(`Header is too big! Reduce Headers and Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
-			}
 			var headerTxid = sendTransaction(floID,adminID,utxos,chunks.length,header,wif);
 			if(!headerTxid)
 				reject(`Error occured while uploading header! Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
@@ -377,7 +388,6 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 <script>
 
 function splitUTXOs(sender,num,wif){
-
 var trx = bitjs.transaction();
 var utxoAmt = 0.0;
 var response = ajax("GET",`api/addr/${sender}/utxo`);
