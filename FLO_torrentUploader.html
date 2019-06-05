@@ -202,6 +202,7 @@
       var server = testnet;
   const sendAmt = 0.001;
   const fee = 0.0005;
+	const splitfee = 0.001;
 </script>
 
 <script>
@@ -305,7 +306,7 @@ function processFile(){
 		//console.log(chunks);
 		console.log(chunks.length);
 		overlaytext.innerHTML = "";
-		var totalFee = fee + (chunks.length*fee) + (sendAmt+fee) // splitUTXOs => 1 fee, each chunk to self => (chunk.lenght*fee), one header to admin ID => (sendAmt+fee)
+		var totalFee = splitfee + (chunks.length*fee) + (sendAmt+fee) // splitUTXOs => 1 fee, each chunk to self => (chunk.lenght*fee), one header to admin ID => (sendAmt+fee)
 		if (totalFee > balance){
 			alert(`Your net balance is : ${balance}\nTotal fee for upload : ${totalFee}\nBalance is Insufficient to upload`);
 			document.getElementById("overlay").style.display = "none";
@@ -394,17 +395,17 @@ var response = ajax("GET",`api/addr/${sender}/utxo`);
 var utxos = JSON.parse(response);
 var splitAmt = sendAmt + fee;
 var TotalAmt = splitAmt*(num+1);
-for(var x = utxos.length-1; (x >= 0) && (utxoAmt < TotalAmt+fee); x--){
+for(var x = utxos.length-1; (x >= 0) && (utxoAmt < TotalAmt+splitfee); x--){
 		trx.addinput(utxos[x].txid, utxos[x].vout, utxos[x].scriptPubKey)
 		utxoAmt += utxos[x].amount;
 }
-if(utxoAmt < TotalAmt+fee){
+if(utxoAmt < TotalAmt+splitfee){
 	alert("Insufficient balance!");
 	return false;
 }
 for(var i=0;i<=num;i++)
 	trx.addoutput(sender, splitAmt);
-var change = utxoAmt-TotalAmt-fee;
+var change = utxoAmt-TotalAmt-splitfee;
 if(change>0)
 	trx.addoutput(sender, change);
 //trx.addflodata(data);
