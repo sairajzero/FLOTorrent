@@ -159,7 +159,7 @@
 <body>
 
 <div id="overlay">
-  <div id="overlay-content"></div></div></div>
+  <div id="overlay-content"></div>
 </div>
 
 <div class="torrent-upload">
@@ -190,6 +190,12 @@
   <input type="button" value="Upload Torrent " onclick="processFile()"/>
   </form>
 </div>
+<div class="refreshUTXO" style="float:right">
+	<button onclick="refreshUTXOs()">Refresh UTXOs</button><br/>
+	<button onclick="decRefreshFee()" id="-">-</button>
+		<span id="refreshFee"></span>
+	<button onclick="incRefreshFee()" id="+">+</button>
+</div>
 </body>
 <script>
     const  cryptocoin = "FLO"
@@ -203,8 +209,23 @@
   const sendAmt = 0.001;
   const fee = 0.0005;
 	const splitfee = 0.001;
-</script>
+	const incRate = 0.001;
+	var refreshfee = 0.001;
 
+</script>
+<script>
+document.getElementById("refreshFee").innerHTML = refreshfee;
+function incRefreshFee(){
+	refreshfee += incRate;
+	document.getElementById("refreshFee").innerHTML = refreshfee;
+}
+function decRefreshFee(){
+	refreshfee -= incRate;
+	if(refreshfee <= incRate)
+		refreshfee = incRate;
+	document.getElementById("refreshFee").innerHTML = refreshfee;
+}
+</script>
 <script>
 	function ajax(method, uri){
 		var request = new XMLHttpRequest();
@@ -389,28 +410,28 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 <script>
 
 function splitUTXOs(sender,num,wif){
-var trx = bitjs.transaction();
-var utxoAmt = 0.0;
-var response = ajax("GET",`api/addr/${sender}/utxo`);
-var utxos = JSON.parse(response);
-var splitAmt = sendAmt + fee;
-var TotalAmt = splitAmt*(num+1);
-for(var x = utxos.length-1; (x >= 0) && (utxoAmt < TotalAmt+splitfee); x--){
-		trx.addinput(utxos[x].txid, utxos[x].vout, utxos[x].scriptPubKey)
-		utxoAmt += utxos[x].amount;
-}
-if(utxoAmt < TotalAmt+splitfee){
-	alert("Insufficient balance!");
-	return false;
-}
-for(var i=0;i<=num;i++)
-	trx.addoutput(sender, splitAmt);
-var change = utxoAmt-TotalAmt-splitfee;
-if(change>0)
-	trx.addoutput(sender, change);
-//trx.addflodata(data);
-var signedTxHash = trx.sign(wif, 1);
-return {scriptPubKey:utxos[0].scriptPubKey ,txid:broadcastTx(signedTxHash)};
+	var trx = bitjs.transaction();
+	var utxoAmt = 0.0;
+	var response = ajax("GET",`api/addr/${sender}/utxo`);
+	var utxos = JSON.parse(response);
+	var splitAmt = sendAmt + fee;
+	var TotalAmt = splitAmt*(num+1);
+	for(var x = utxos.length-1; (x >= 0) && (utxoAmt < TotalAmt+splitfee); x--){
+			trx.addinput(utxos[x].txid, utxos[x].vout, utxos[x].scriptPubKey)
+			utxoAmt += utxos[x].amount;
+	}
+	if(utxoAmt < TotalAmt+splitfee){
+		alert("Insufficient balance!");
+		return false;
+	}
+	for(var i=0;i<=num;i++)
+		trx.addoutput(sender, splitAmt);
+	var change = utxoAmt-TotalAmt-splitfee;
+	if(change>0)
+		trx.addoutput(sender, change);
+	//trx.addflodata(data);
+	var signedTxHash = trx.sign(wif, 1);
+	return {scriptPubKey:utxos[0].scriptPubKey ,txid:broadcastTx(signedTxHash)};
 }
 function sendTransaction(sender,receiver,utxo,vout,data,wif){
 	var trx = bitjs.transaction();
@@ -420,6 +441,49 @@ function sendTransaction(sender,receiver,utxo,vout,data,wif){
 	var signedTxHash = trx.sign(wif, 1);
 	return broadcastTx(signedTxHash);
 }
+function refreshUTXOs(){
+	console.log("refreshUTXOs");
+	document.getElementById("overlay").style.display = "block";
+	var overlay = document.getElementById("overlay-content");
+	overlay.innerHTML="";
+	var floID = document.getElementById('floID').value;
+	var wif = prompt("Enter FLO private key (WIF) : ");
+	if(!verifyWIF(wif,floID)){
+		alert("Invalid Private Key!");
+		document.getElementById("overlay").style.display = "none";
+		return;
+	}
+	var loader = document.createElement("div");
+	loader.setAttribute("class","loader");
+	overlay.appendChild(loader);
+	var overlaytext = document.createElement("div");
+	overlaytext.innerHTML = 'Refreshing UTXOs';
+	overlay.appendChild(overlaytext);
+
+	var trx = bitjs.transaction();
+	var utxoAmt = 0.0;
+	var response = ajax("GET",`api/addr/${floID}/utxo`);
+	var utxos = JSON.parse(response);
+	for(var x = utxos.length-1; (x >= 0); x--){
+			trx.addinput(utxos[x].txid, utxos[x].vout, utxos[x].scriptPubKey)
+			utxoAmt += utxos[x].amount;
+	}
+	if(utxoAmt <= refreshfee){
+		alert("Insufficient Balance!");
+		document.getElementById("overlay").style.display = "none";
+		return;
+	}
+	var refreshAmt = utxoAmt - refreshfee;
+	trx.addoutput(floID, refreshAmt);
+	var signedTxHash = trx.sign(wif, 1);
+	var txid = broadcastTx(signedTxHash);
+	if(!txid)
+		alert(`Refresh Unsuccessful! Rise the refresh fee and Try again!`);
+	else
+		alert(`Refresh UTXO successful\ntxid:${txid}`);
+	document.getElementById("overlay").style.display = "none";
+}
+
 function broadcastTx(signedTxHash) {
 			var http = new XMLHttpRequest();
 			var url = `${server}/api/tx/send`;
