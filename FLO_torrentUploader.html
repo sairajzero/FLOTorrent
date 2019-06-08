@@ -417,8 +417,10 @@ function splitUTXOs(sender,num,wif){
 	var splitAmt = sendAmt + fee;
 	var TotalAmt = splitAmt*(num+1);
 	for(var x = utxos.length-1; (x >= 0) && (utxoAmt < TotalAmt+splitfee); x--){
+		if(utxos[x].confirmations){
 			trx.addinput(utxos[x].txid, utxos[x].vout, utxos[x].scriptPubKey)
 			utxoAmt += utxos[x].amount;
+		}
 	}
 	if(utxoAmt < TotalAmt+splitfee){
 		alert("Insufficient balance!");
@@ -465,8 +467,10 @@ function refreshUTXOs(){
 	var response = ajax("GET",`api/addr/${floID}/utxo`);
 	var utxos = JSON.parse(response);
 	for(var x = utxos.length-1; (x >= 0); x--){
+		if(utxos[x].confirmations){
 			trx.addinput(utxos[x].txid, utxos[x].vout, utxos[x].scriptPubKey)
 			utxoAmt += utxos[x].amount;
+		}
 	}
 	if(utxoAmt <= refreshfee){
 		alert("Insufficient Balance!");
