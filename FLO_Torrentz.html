@@ -400,7 +400,7 @@ var searchKey = "";
           reject("Error in opening IndexedDB!");
       };
       idb.onupgradeneeded = function(event) {
-             var objectStore = event.target.result.createObjectStore("torrents", { keyPath: "id", autoIncrement:true });
+             var objectStore = event.target.result.createObjectStore("torrents", { keyPath: "id",autoIncrement:true});
              objectStore.createIndex("name", "name", { unique: false });
              objectStore.createIndex("filename", "filename", { unique: false });
              objectStore.createIndex("type", "type", { unique: false });
@@ -472,8 +472,8 @@ var searchKey = "";
            });
         }
   function getDataFromIDB(){
-  return new Promise(
-  function(resolve, reject) {
+    return new Promise(
+    function(resolve, reject) {
       var idb = indexedDB.open("FLO_Torrent");
        idb.onerror = function(event) {
            reject("Error in opening IndexedDB!");
@@ -491,7 +491,32 @@ var searchKey = "";
      }
    );
   }
-
+function getNewestDatafromAPI(){
+  return new Promise(
+    function (resolve,reject){
+      var addr = adminID;
+      var response = ajax("GET",`api/addrs/${addr}/txs?from=0&to=100`);
+      response = JSON.parse(response);
+      var tmpData = [];
+      response.items.forEach(function(tx){
+        try {
+          if(!tx.blockhash){ //ignore error txs that did not go into any blocks
+            errorTxCount += 1;
+            return;
+          }
+          var torrentdata = JSON.parse(tx.floData).FLO_Torrent;
+          if(torrentdata === undefined)
+            return;
+          var data = {name : torrentdata.name, filename : torrentdata.filename, type : torrentdata.type,uploader:tx.vin[0].addr, description:torrentdata.description, size:torrentdata.size,tags:torrentdata.tags,chunks:torrentdata.chunks,startTx:torrentdata.startTx};
+          tmpData.push(data);
+        } catch (e) {
+          //console.log(e)
+        }
+      });
+      resolve(tmpData);
+    }
+  );
+}
   function ajax(method, uri){
     var request = new XMLHttpRequest();
     var url = `${server}/${uri}`
@@ -563,7 +588,7 @@ function searchTorrents(){
     console.log(searchKey);
     searchResults = [];
     for(var i = 0; i <torrents.length; i++){
-      if(torrents[i].name.includes(searchKey) || torrents[i].tags.includes(searchKey) || torrents[i].description.includes(searchKey))
+      if(torrents[i].name.includes(searchKey))
         searchResults.push(i);
       rePaint();
     }
@@ -585,6 +610,17 @@ function clearSearch(){
 //This function will be called by framework for you
   function userDataNeedingNoRePaint(){
     console.log("StartUp");
+    getNewestDatafromAPI().then(function(result){
+      torrents = result;
+      console.log(torrents);
+      searchResults = [];
+      for(var i=0 ; i<torrents.length;i++)
+        searchResults.push(i);
+      rePaint();
+    }).catch(function(error){
+        console.log(error.message);
+
+    });
     getDatafromAPI().then(function (res) {
       getDataFromIDB().then(function (response) {
         torrents = response.reverse();
