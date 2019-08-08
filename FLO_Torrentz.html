@@ -475,11 +475,11 @@ var searchKey = "";
                   if(lasttx === undefined){
                       lasttx = 0;
                   }
-                  var response = ajax("GET",`api/addrs/${addr}/txs`);
+                  var response = ajaxSync("GET",`api/addrs/${addr}/txs`);
                   var nRequired = JSON.parse(response).totalItems - lasttx;
                   console.log(nRequired);
                   while(true && nRequired){
-                    var response = ajax("GET",`api/addrs/${addr}/txs?from=0&to=${nRequired}`);
+                    var response = ajaxSync("GET",`api/addrs/${addr}/txs?from=0&to=${nRequired}`);
                     response = JSON.parse(response);
                     if (nRequired + lasttx != response.totalItems ){
                       nRequired = response.totalItems - lasttx;
@@ -548,7 +548,7 @@ function getNewestDatafromAPI(){
   return new Promise(
     function (resolve,reject){
       var addr = adminID;
-      var response = ajax("GET",`api/addrs/${addr}/txs?from=0&to=100`);
+      var response = ajaxSync("GET",`api/addrs/${addr}/txs?from=0&to=100`);
       response = JSON.parse(response);
       var tmpData = [];
       response.items.forEach(function(tx){
@@ -570,7 +570,7 @@ function getNewestDatafromAPI(){
     }
   );
 }
-  function ajax(method, uri){
+  function ajaxSync(method, uri){
     var request = new XMLHttpRequest();
     var url = `${server}/${uri}`
     console.log(url)
@@ -589,35 +589,62 @@ function getNewestDatafromAPI(){
     return result;
   }
 
+  function ajaxPromised(method, uri){
+    return new Promise( (resolve, reject) => {
+      var request = new XMLHttpRequest();
+      var url = `${server}/${uri}`;
+      console.log(url)
+      request.open(method, url , true);
+      request.onload = function () {
+        if (request.readyState == 4 && request.status == 200)
+          resolve(this.response);
+        else 
+          reject(this.response);
+      };
+      request.send();
+    });
+  }
+
+  function getTorrentMetafromAPI(txid,i,N){
+    return new Promise( (resolve, reject) => {
+      ajaxPromised("GET", `/api/tx/${txid}`).then( response => {
+        var floData = JSON.parse(JSON.parse(response).floData);
+        var percent = Math.round((i / N) * 100);
+        document.getElementById('progressValue').innerHTML = `${percent}%`;
+        if (percent < 50)
+          document.getElementById('progressBar').setAttribute("class", `progress-circle p${percent}`);
+        else
+          document.getElementById('progressBar').setAttribute("class", `progress-circle over50 p${percent}`);
+        console.log(i,N,percent,floData.next);
+        if(!floData.next)
+          resolve([floData.data]);
+        else{
+          getTorrentMetafromAPI(floData.next,i+1,N).then( chunks => {
+            resolve([floData.data].concat(chunks))
+          }).catch( error => {
+            reject(error);
+          });
+        }
+      }).catch( error => {
+        reject(error);
+      });
+    });
+  }
   async function downloadTorrent(filename,txid,totalChunks){
     document.getElementById('downloadBar').style.display = "block";
-    var progressBar = document.getElementById('progressBar');
-    progressBar.setAttribute("class","progress-circle p0");
-    var progressValue = document.getElementById('progressValue');
-    progressValue.innerHTML = `0%`;
+    document.getElementById('progressBar').setAttribute("class","progress-circle p0");
+    document.getElementById('progressValue').innerHTML = `0%`;
     console.log(txid);
-    chunks = [];
-    var percent = 0;
-    try {
-      while (txid) {
-        var response = ajax("GET", `/api/tx/${txid}`);
-        var floData = JSON.parse(JSON.parse(response).floData)
-        chunks.push(floData.data);
-        txid = floData.next;
-        percent = Math.round((chunks.length / totalChunks) * 100)
-        progressValue.innerHTML = `${percent}%`;
-        if (percent < 50)
-          progressBar.setAttribute("class", `progress-circle p${percent}`);
-        else
-          progressBar.setAttribute("class", `progress-circle over50 p${percent}`);
-      }
+    getTorrentMetafromAPI(txid,1,totalChunks).then( chunks => {
       var filedata = chunks.join("");
       console.log(filedata);
       download(filename, filedata);
-    } catch (e) {
-      console.log(e);
-    }
-    document.getElementById('downloadBar').style.display = "none";
+    }).catch( error => {
+      alert(error);
+      console.log(error);
+    }).finally( _ => { 
+      document.getElementById('downloadBar').style.display = "none";
+    });
   }
 
   function download(filename, data) {
