@@ -393,6 +393,7 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 				overlaytext.innerHTML = `Uploading chunks to blockchain...<br/>Uploaded ${j} of ${chunks.length}`;
 				progressWidth = (j/chunks.length)*100
 				progress.style.width = progressWidth + '%';
+                await sleep(10);
 			}
 			overlaytext.innerHTML = "Uploading Header..."
 			var header = JSON.stringify({FLO_Torrent:{name:name,filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
