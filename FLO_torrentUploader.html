@@ -398,6 +398,7 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 			overlaytext.innerHTML = "Uploading Header..."
 			var header = JSON.stringify({FLO_Torrent:{name:name,filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
 			console.log(header);
+			await sleep(10);
 			var headerTxid = sendTransaction(floID,adminID,utxos,chunks.length,header,wif);
 			if(!headerTxid)
 				reject(`Error occured while uploading header! Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
