@@ -360,7 +360,7 @@
 
 <script>
 const  cryptocoin = "FLO";
-const mainnet = `https://flosight.duckdns.org`;
+const mainnet = `https://flosight.duckdns.org/`;
 const testnet = `https://testnet-flosight.duckdns.org`;
 const adminID = "FDG64XNjdsA4rAgfm4ABEs2RcTgqn8Jecv";
 if(cryptocoin == "FLO")
@@ -420,6 +420,9 @@ var searchKey = "";
 <script id="userNonPresentationData">
   //User Data Section. Keep things that will fetch user non-presentation data here
   //Do not put presentation elements here. Presentation elements will need rePainting when screens are resized. Put them in next script tag UserPresentationCode under function rePaintUserData()
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   function storedata(torrentdata){
     return new Promise(
@@ -825,7 +828,8 @@ anotherDivCleanUp();
 
 
 //One time tasks not needing repainting
-function oneTimeTasks(){
+async function oneTimeTasks(){
+    await sleep(100);
     createAllBaseDivs(screenAlpha.totalBoxes);
     userDataNeedingNoRePaint();
     rePaint();
