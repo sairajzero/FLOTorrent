@@ -42,3 +42,8 @@ FLO_torrentz is used to view the list of torrents uploaded to the blockchain
 3. Click on the Torrent which you wish to download. (The uploader FLO_ID will also be shown).
 4. The Torrent file will be retrived from the blockchain using API and then you can open/save the torrent file.
 5. Open the torrent file in any torrent client apps (such as Bittorrent) and download the files.
+
+## Android
+Android users can directly download the FLO_Torrent.apk and Install the app.
+To download the apk : Click [View raw](https://github.com/ranchimall/FLO_Torrent/blob/master/FLO_Torrent.apk?raw=true)
+
