@@ -369,6 +369,26 @@ else if(cryptocoin == "FLO_TEST")
   var server = testnet;
 var torrents = [], searchResults = [], torrentSearchIndex;
 var searchKey = "";
+//Trusted Uploader IDs
+var trustedIDs = [
+  'FS4jMAcSimRMrhoRhk5cjuJERS2otiwq4A',
+  'FC8dwBuhdGPkXdoQwECaeT1nz9jt5Y5bJL',
+  'FT9qkvuWXWBDRhHd42tDr5nMYFSx7bEhV7',
+  'F6LUnwRRjFuEW97Y4av31eLqqVMK9FrgE2',
+  'F6uMddaTDCZgojENbqRnFo5PCknArE7dKz',
+  'FLjPCHRniCRXqZCVCTA3QY8wvCtmKKmHuu',
+  'FECzMqC7Mu7S8HzqivvmgnkqCsGncxRC31',
+  'FDJuTc7tF8oSDXqu8PysUmFo6KfN9SR8JE',
+  'F7taaUKtUxXCb8LvhP4xgp745GLEyWYWUp',
+  'FFCyro8xwCncK1BhHxrSRsrZomAFFXZ2hu',
+  'FAoML3etShd79AGSMGJBrSiiGg7xs9GjT2',
+  'FTobXqnpcGVNuTAqMzbYQdUmpTJXPDD2uS',
+  'FST8YJCxz2dj3LvegW2KaN4wLh8xKv92Kj',
+  'F92zPc8tsCKMfjkDn6sUinE4pbL58xwj6m',
+  'FRZUivwC2Bo1dKhhJ3u3Gzw8bTvXV5QA16',
+  'F7diGgerhZWD98j5CZpJi8BYPhe8RiMBtR',
+  'FDcV3Xn4F51K91WozakaKdaVrGBBf7BSfw'
+]
 </script>
 
 <script>
@@ -496,6 +516,8 @@ var searchKey = "";
                           errorTxCount += 1;
                           return;
                         }
+                        if(!trustedIDs.includes(tx.vin[0].addr)) //ignore if torrent is not from trusted ID
+                          return
                         var torrentdata = JSON.parse(tx.floData).FLO_Torrent;
                         if(torrentdata === undefined)
                           return;
@@ -560,6 +582,8 @@ function getNewestDatafromAPI(){
             errorTxCount += 1;
             return;
           }
+          if(!trustedIDs.includes(tx.vin[0].addr)) //ignore if torrent is not from trusted ID
+            return
           var torrentdata = JSON.parse(tx.floData).FLO_Torrent;
           if(torrentdata === undefined)
             return;
