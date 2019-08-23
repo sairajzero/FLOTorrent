@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>FLO Torrent Project</title>
+<title>FLO Torrent Uploader</title>
 <style type="text/css">
 /* form CSS */
 .torrent-upload{
@@ -393,10 +393,12 @@ function sendDataToBlockchain(floID,name,filename,type,description,tags,filesize
 				overlaytext.innerHTML = `Uploading chunks to blockchain...<br/>Uploaded ${j} of ${chunks.length}`;
 				progressWidth = (j/chunks.length)*100
 				progress.style.width = progressWidth + '%';
+                await sleep(10);
 			}
 			overlaytext.innerHTML = "Uploading Header..."
 			var header = JSON.stringify({FLO_Torrent:{name:name,filename:filename,type:type,size:filesize,description:description,tags:tags,chunks:chunks.length,startTx:lastTx}});
 			console.log(header);
+			await sleep(10);
 			var headerTxid = sendTransaction(floID,adminID,utxos,chunks.length,header,wif);
 			if(!headerTxid)
 				reject(`Error occured while uploading header! Try again!\nRemaining chunks : 0\nLast successful Txid : ${lastTx}`);
