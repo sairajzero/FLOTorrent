@@ -46,3 +46,5 @@ FLO_torrentz is used to view the list of torrents uploaded to the blockchain
 ## Android
 Android users can directly download the FLO_Torrent.apk and Install the app.
 To download the apk : Click [View raw](https://github.com/ranchimall/FLO_Torrent/blob/master/FLO_Torrent.apk?raw=true)
+
+EDIT: xyz
